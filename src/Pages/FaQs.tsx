@@ -14,8 +14,6 @@ import {
   HelpCircle,
   FileText,
   DollarSign,
-  Clock,
-  Lock,
   MessageCircle
 } from 'lucide-react';
 
