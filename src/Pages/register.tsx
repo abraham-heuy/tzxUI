@@ -1,0 +1,460 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, User, TrendingUp, CreditCard, Key, PenSquare, CheckCircle, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react';
+
+// Import components
+import ProgressSteps from '../components/common/ProgressSteps';
+import BasicDetails from '../components/register/BasicDetails';
+import PoolSelection from '../components/register/PoolSelection';
+import PaymentStep from '../components/register/PaymentStep';
+import SignatureStep from '../components/register/SignatureStep';
+import SuccessStep from '../components/register/SuccessStep';
+import MpesaLimitModal from '../components/register/MpesaLimitModal';
+
+// Import data and types
+import type { FormData } from '../types/register';
+
+// Import background image
+import registerBg from '../assets/register.jpg';
+import { pools } from '../data/pool';
+import VerificationStep from '../components/register/verificationstep';
+
+// Steps configuration - Updated to 6 steps
+const steps = [
+  { id: 1, name: 'Basic Details', icon: User },
+  { id: 2, name: 'Select Pool', icon: TrendingUp },
+  { id: 3, name: 'Payment', icon: CreditCard },
+  { id: 4, name: 'Verify', icon: Key },
+  { id: 5, name: 'Sign & Agree', icon: PenSquare },
+  { id: 6, name: 'Complete', icon: CheckCircle }
+];
+
+// Terms and Conditions content
+const termsContent = {
+  introduction: "Welcome to TZX Trading. By accessing or using our platform, you agree to be bound by these Terms and Conditions.",
+  sections: [
+    { title: "1. Risk Disclosure", content: "Trading in financial markets involves substantial risk of loss. Past performance does not guarantee future results." },
+    { title: "2. Investment Pools", content: "Our investment pools are managed by professional traders. Returns are not guaranteed and can fluctuate." },
+    { title: "3. Profit & Loss", content: "The trader manages all withdrawals and profit distributions. Losses are a normal part of trading." },
+    { title: "4. Fees and Charges", content: "Management fees are charged monthly and deducted from pool profits before distribution." }
+  ],
+  agreement: "By investing with TZX Trading, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions."
+};
+
+const Register = () => {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [isMpesaLimitOpen, setIsMpesaLimitOpen] = useState(false);
+  
+  // Payment states
+  const [isSendingPayment, setIsSendingPayment] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [paymentSent, setPaymentSent] = useState(false);
+  
+  // Signature and terms state
+  const [signature, setSignature] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [signatureError, setSignatureError] = useState('');
+
+  // Generate random reference number
+  const generateReference = () => {
+    const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `#CaseTZX${randomNum}`;
+  };
+  const [referenceNumber] = useState(generateReference());
+
+  // Form data state
+  const [formData, setFormData] = useState<FormData>({
+    fullName: '',
+    email: '',
+    phone: '',
+    idNumber: '',
+    password: '',
+    confirmPassword: '',
+    selectedPool: '',
+    investmentAmount: 5000,
+    mpesaPhone: '',
+    mpesaCode: '',
+  });
+
+  // Handlers
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'number' ? parseFloat(value) || 0 : value
+    }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  const adjustAmount = (increment: boolean) => {
+    const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+    if (!selectedPoolData) return;
+    
+    const step = 1000;
+    let newAmount = formData.investmentAmount;
+    newAmount = increment 
+      ? Math.min(newAmount + step, selectedPoolData.maxAmount)
+      : Math.max(newAmount - step, selectedPoolData.minAmount);
+    
+    setFormData(prev => ({ ...prev, investmentAmount: newAmount }));
+  };
+
+  const handlePoolSelect = (poolId: string) => {
+    const selectedPoolData = pools.find(p => p.id === poolId);
+    setFormData(prev => ({ 
+      ...prev, 
+      selectedPool: poolId,
+      investmentAmount: selectedPoolData?.minAmount || 5000
+    }));
+  };
+
+  const calculateFees = () => {
+    const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+    if (!selectedPoolData) return { fee: 0, total: formData.investmentAmount };
+    const fee = formData.investmentAmount * selectedPoolData.fee;
+    return { fee, total: formData.investmentAmount + fee };
+  };
+
+  // Payment handlers
+  const handleSendPayment = () => {
+    // Validate phone
+    if (!formData.mpesaPhone) {
+      setErrors(prev => ({ ...prev, mpesaPhone: 'Phone number is required' }));
+      return;
+    }
+    if (!/^\+?254\d{9}$/.test(formData.mpesaPhone.replace(/\s/g, ''))) {
+      setErrors(prev => ({ ...prev, mpesaPhone: 'Enter valid M-Pesa number' }));
+      return;
+    }
+    
+    setIsSendingPayment(true);
+    
+    // Simulate sending payment request
+    setTimeout(() => {
+      setIsSendingPayment(false);
+      setPaymentSent(true);
+      // Move to verification step
+      setCurrentStep(4);
+      setErrors({});
+    }, 2000);
+  };
+
+  const handleVerifyTransaction = () => {
+    // Validate transaction code
+    if (!formData.mpesaCode) {
+      setErrors(prev => ({ ...prev, mpesaCode: 'Transaction code is required' }));
+      return;
+    }
+    if (!/^[A-Z0-9]{10,12}$/i.test(formData.mpesaCode)) {
+      setErrors(prev => ({ ...prev, mpesaCode: 'Enter a valid M-Pesa transaction code' }));
+      return;
+    }
+    
+    setIsVerifying(true);
+    
+    // Simulate verification
+    setTimeout(() => {
+      setIsVerifying(false);
+      // Move to signature step
+      setCurrentStep(5);
+      setErrors({});
+    }, 1500);
+  };
+
+  // Validation
+  const validateStep1 = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Valid email is required';
+    if (!formData.phone.trim() || !/^\+?254\d{9}$/.test(formData.phone.replace(/\s/g, ''))) {
+      newErrors.phone = 'Valid Kenyan number required';
+    }
+    if (!formData.idNumber.trim() || !/^\d{5,8}$/.test(formData.idNumber)) {
+      newErrors.idNumber = 'Valid ID number required';
+    }
+    if (!formData.password || formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
+    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.selectedPool) {
+      newErrors.selectedPool = 'Please select an investment pool';
+    } else {
+      const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+      if (selectedPoolData) {
+        if (formData.investmentAmount < selectedPoolData.minAmount) {
+          newErrors.investmentAmount = `Minimum amount is KES ${selectedPoolData.minAmount.toLocaleString()}`;
+        }
+        if (formData.investmentAmount > selectedPoolData.maxAmount) {
+          newErrors.investmentAmount = `Maximum amount is KES ${selectedPoolData.maxAmount.toLocaleString()}`;
+        }
+      }
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep5 = () => {
+    let isValid = true;
+    if (!signature.trim()) {
+      setSignatureError('Please type your full name to sign');
+      isValid = false;
+    } else if (signature.toLowerCase() !== formData.fullName.toLowerCase()) {
+      setSignatureError('Signature must match your full name exactly');
+      isValid = false;
+    } else {
+      setSignatureError('');
+    }
+    if (!termsAccepted) {
+      setErrors(prev => ({ ...prev, terms: 'You must accept the terms and conditions' }));
+      isValid = false;
+    }
+    return isValid;
+  };
+
+  const handleNext = () => {
+    let isValid = false;
+    switch (currentStep) {
+      case 1: isValid = validateStep1(); break;
+      case 2: isValid = validateStep2(); break;
+      case 5: isValid = validateStep5(); break;
+      default: isValid = true;
+    }
+    
+    if (isValid) {
+      setCurrentStep(prev => Math.min(prev + 1, 6));
+      setErrors({});
+      setTouched({});
+    } else {
+      const allFields = ['fullName', 'email', 'phone', 'idNumber', 'password', 'confirmPassword', 
+                         'selectedPool', 'investmentAmount'];
+      const newTouched: Record<string, boolean> = {};
+      allFields.forEach(field => newTouched[field] = true);
+      setTouched(newTouched);
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setErrors({});
+  };
+
+  const handleSubmit = () => setCurrentStep(6);
+
+  const formatAmount = (amount: number) => `KES ${amount.toLocaleString()}`;
+
+  const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+  const { fee, total } = calculateFees();
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-['Inter,_sans-serif']">
+      {/* Navigation Bar */}
+      <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-16">
+            <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-700 hover:text-[#ff444f]">
+              <ArrowLeft size={20} />
+              <span className="font-medium">Back to Home</span>
+            </button>
+            <div className="flex-shrink-0 ml-auto">
+              <h1 className="text-2xl font-bold text-[#ff444f]">TZX<span className="text-gray-900">Trading</span></h1>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <div className="pt-16">
+        <section className="relative py-12 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${registerBg})` }}>
+          <div className="absolute inset-0 bg-black/70" />
+          <div className="relative max-w-4xl mx-auto px-4 text-center z-10">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+              Start Your <span className="text-[#ff444f]">Investment Journey</span>
+            </h1>
+            <p className="text-gray-200">Complete the steps below to get started</p>
+          </div>
+        </section>
+
+        <section className="py-8 md:py-12">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6">
+            <ProgressSteps steps={steps} currentStep={currentStep} />
+
+            <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+              <AnimatePresence mode="wait">
+                {currentStep === 1 && (
+                  <BasicDetails
+                    formData={formData}
+                    errors={errors}
+                    touched={touched}
+                    onChange={handleChange}
+                  />
+                )}
+
+                {currentStep === 2 && (
+                  <PoolSelection
+                    formData={formData}
+                    errors={errors}
+                    touched={touched}
+                    selectedPoolData={selectedPoolData}
+                    onPoolSelect={handlePoolSelect}
+                    onAmountChange={handleChange}
+                    onAdjustAmount={adjustAmount}
+                    formatAmount={formatAmount}
+                    onShowMpesaLimit={() => setIsMpesaLimitOpen(true)}
+                  />
+                )}
+
+                {currentStep === 3 && (
+                  <PaymentStep
+                    formData={formData}
+                    errors={errors}
+                    touched={touched}
+                    selectedPoolData={selectedPoolData}
+                    investmentAmount={formData.investmentAmount}
+                    fee={fee}
+                    total={total}
+                    onChange={handleChange}
+                    onSendPayment={handleSendPayment}
+                    formatAmount={formatAmount}
+                    isSendingPayment={isSendingPayment}
+                  />
+                )}
+
+                {currentStep === 4 && (
+                  <VerificationStep
+                    formData={formData}
+                    errors={errors}
+                    touched={touched}
+                    total={total}
+                    mpesaPhone={formData.mpesaPhone}
+                    onChange={handleChange}
+                    onVerify={handleVerifyTransaction}
+                    formatAmount={formatAmount}
+                    isVerifying={isVerifying}
+                    paymentSent={paymentSent}
+                  />
+                )}
+
+                {currentStep === 5 && (
+                  <SignatureStep
+                    fullName={formData.fullName}
+                    signature={signature}
+                    signatureError={signatureError}
+                    termsAccepted={termsAccepted}
+                    termsError={errors.terms || ''}
+                    onSignatureChange={setSignature}
+                    onTermsChange={(checked) => {
+                      setTermsAccepted(checked);
+                      if (checked) setErrors(prev => ({ ...prev, terms: '' }));
+                    }}
+                  />
+                )}
+
+                {currentStep === 6 && (
+                  <SuccessStep
+                    referenceNumber={referenceNumber}
+                    fullName={formData.fullName}
+                    investmentAmount={formData.investmentAmount}
+                    selectedPoolName={selectedPoolData?.name || ''}
+                    signature={signature}
+                    onReturnHome={() => navigate('/')}
+                    formatAmount={formatAmount}
+                  />
+                )}
+              </AnimatePresence>
+
+              {/* Navigation Buttons - Conditional based on step */}
+              {currentStep < 6 && (
+                <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
+                  {/* Back button - hidden on steps with no back */}
+                  {currentStep > 1 && currentStep !== 3 && currentStep !== 4 && (
+                    <button onClick={handleBack}
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-100">
+                      <ChevronLeft size={18} /> Back
+                    </button>
+                  )}
+                  
+                  {/* Next/Continue button - only for steps with navigation */}
+                  {currentStep === 1 && (
+                    <button onClick={handleNext}
+                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44]">
+                      Continue <ChevronRight size={18} />
+                    </button>
+                  )}
+                  
+                  {currentStep === 2 && (
+                    <button onClick={handleNext}
+                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44]">
+                      Continue to Payment <ChevronRight size={18} />
+                    </button>
+                  )}
+                  
+                  {currentStep === 5 && (
+                    <button onClick={handleSubmit}
+                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44]">
+                      Complete Registration <ChevronRight size={18} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Terms Modal */}
+      <AnimatePresence>
+        {isTermsOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-md z-50" onClick={() => setIsTermsOpen(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-4 md:inset-8 z-50 flex items-center justify-center pointer-events-none">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-full overflow-hidden pointer-events-auto flex flex-col">
+                <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-amber-600" />
+                    <h2 className="text-lg font-bold text-gray-900">Terms & Conditions</h2>
+                  </div>
+                  <button onClick={() => setIsTermsOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                    <X size={20} className="text-gray-600" />
+                  </button>
+                </div>
+                <div className="p-6 overflow-y-auto">
+                  <p className="text-sm text-gray-700 mb-4">{termsContent.introduction}</p>
+                  {termsContent.sections.map((section, index) => (
+                    <div key={index} className="mb-4">
+                      <h3 className="font-semibold text-gray-900 mb-2">{section.title}</h3>
+                      <p className="text-sm text-gray-600">{section.content}</p>
+                    </div>
+                  ))}
+                  <div className="bg-amber-50 p-4 rounded-xl mt-4">
+                    <p className="text-sm text-amber-800">{termsContent.agreement}</p>
+                  </div>
+                  <button onClick={() => setIsTermsOpen(false)}
+                    className="w-full bg-amber-600 text-white py-3 rounded-xl hover:bg-amber-700 font-semibold mt-6">
+                    I Have Read and Understand
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* M-Pesa Limit Modal */}
+      <MpesaLimitModal isOpen={isMpesaLimitOpen} onClose={() => setIsMpesaLimitOpen(false)} />
+    </div>
+  );
+};
+
+export default Register;
