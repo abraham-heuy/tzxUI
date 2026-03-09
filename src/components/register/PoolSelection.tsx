@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Minus, Plus } from 'lucide-react';
+import { Check } from 'lucide-react'; // Removed Minus, Plus imports
 import { pools } from '../../data/pool';
 
 interface PoolSelectionProps {
@@ -8,8 +8,6 @@ interface PoolSelectionProps {
   touched: Record<string, boolean>;
   selectedPoolData: any;
   onPoolSelect: (poolId: string) => void;
-  onAmountChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onAdjustAmount: (increment: boolean) => void;
   formatAmount: (amount: number) => string;
   onShowMpesaLimit: () => void;
 }
@@ -20,8 +18,6 @@ const PoolSelection = ({
   touched, 
   selectedPoolData,
   onPoolSelect, 
-  onAmountChange,
-  onAdjustAmount,
   formatAmount,
   onShowMpesaLimit
 }: PoolSelectionProps) => {
@@ -35,7 +31,7 @@ const PoolSelection = ({
         Select <span className="text-[#ff444f]">Investment Pool</span>
       </h2>
 
-      {/* Pool Selection */}
+      {/* Pool Selection - Fixed amounts */}
       <div className="space-y-4 mb-6">
         {pools.map(pool => {
           const PoolIcon = pool.icon;
@@ -67,12 +63,30 @@ const PoolSelection = ({
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{pool.description}</p>
+                  
+                  {/* Fixed Amount Display */}
+                  <div className="flex items-center gap-4 text-sm mb-2">
+                    <span className="font-bold text-[#ff444f]">
+                      {formatAmount(pool.amount)}
+                    </span>
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                      Returns after {pool.returnPeriod}
+                    </span>
+                  </div>
+                  
+                  {/* Details Row */}
                   <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span>Min: KES {pool.minAmount.toLocaleString()}</span>
-                    <span>Max: KES {pool.maxAmount.toLocaleString()}</span>
                     <span>Returns: {pool.returns}</span>
                     <span>Fee: {(pool.fee * 100)}%</span>
                   </div>
+
+                  {/* Selected Indicator */}
+                  {isSelected && (
+                    <div className="mt-2 flex items-center gap-1 text-xs text-[#ff444f]">
+                      <Check size={14} />
+                      <span>Selected</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </button>
@@ -84,64 +98,18 @@ const PoolSelection = ({
         <p className="text-red-500 text-sm mb-4">{errors.selectedPool}</p>
       )}
 
-      {/* Investment Amount */}
-      {selectedPoolData && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Investment Amount <span className="text-red-500">*</span>
-          </label>
-          
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => onAdjustAmount(false)}
-              className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center hover:border-[#ff444f] transition-colors"
+      {/* No amount input - fixed amounts only */}
+      {selectedPoolData && selectedPoolData.id !== 'test' && selectedPoolData.amount > 299999 && (
+        <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <p className="text-xs text-yellow-700">
+            Amount exceeds M-Pesa limit (KES 299,999). 
+            <button 
+              onClick={onShowMpesaLimit}
+              className="ml-1 text-[#ff444f] font-medium underline"
             >
-              <Minus size={20} className="text-gray-600" />
+              View options
             </button>
-            
-            <div className="flex-1">
-              <input
-                type="number"
-                name="investmentAmount"
-                value={formData.investmentAmount}
-                onChange={onAmountChange}
-                min={selectedPoolData.minAmount}
-                max={selectedPoolData.maxAmount}
-                step={1000}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-center text-xl font-semibold focus:ring-2 focus:ring-[#ff444f] focus:border-transparent outline-none"
-              />
-            </div>
-            
-            <button
-              onClick={() => onAdjustAmount(true)}
-              className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center hover:border-[#ff444f] transition-colors"
-            >
-              <Plus size={20} className="text-gray-600" />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between mt-3 text-sm">
-            <span className="text-gray-500">Min: {formatAmount(selectedPoolData.minAmount)}</span>
-            <span className="text-gray-500">Max: {formatAmount(selectedPoolData.maxAmount)}</span>
-          </div>
-
-          {formData.investmentAmount > 299999 && (
-            <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <p className="text-xs text-yellow-700">
-                Amount exceeds M-Pesa limit (KES 299,999). 
-                <button 
-                  onClick={onShowMpesaLimit}
-                  className="ml-1 text-[#ff444f] font-medium underline"
-                >
-                  View options
-                </button>
-              </p>
-            </div>
-          )}
-
-          {touched.investmentAmount && errors.investmentAmount && (
-            <p className="text-red-500 text-xs mt-2">{errors.investmentAmount}</p>
-          )}
+          </p>
         </div>
       )}
     </motion.div>

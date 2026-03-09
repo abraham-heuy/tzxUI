@@ -14,7 +14,6 @@ const Navbar: React.FC<NavbarProps> = ({ navItems }) => {
   const handleNavigation = (href: string) => {
     setIsMenuOpen(false);
     if (href.startsWith('#')) {
-      // Handle hash links on home page
       if (window.location.pathname !== '/') {
         navigate('/' + href);
       } else {
@@ -30,7 +29,7 @@ const Navbar: React.FC<NavbarProps> = ({ navItems }) => {
     <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo - Updated to TZX Trading */}
+          {/* Logo */}
           <div 
             className="flex-shrink-0 cursor-pointer" 
             onClick={() => navigate('/')}
@@ -41,7 +40,7 @@ const Navbar: React.FC<NavbarProps> = ({ navItems }) => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-8">
+          <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
               <button
                 key={item.name}
@@ -53,8 +52,17 @@ const Navbar: React.FC<NavbarProps> = ({ navItems }) => {
             ))}
           </div>
 
-          {/* CTA Button */}
-          <div className="hidden md:block">
+          {/* Desktop Action Buttons */}
+          <div className="hidden md:flex items-center space-x-3">
+            {/* Login Button - Clean Gray */}
+            <button
+              onClick={() => navigate('/login')}
+              className="px-5 py-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-200 font-medium"
+            >
+              Login
+            </button>
+            
+            {/* Get Started Button */}
             <button 
               onClick={() => navigate('/register')}
               className="bg-[#ff444f] text-white px-6 py-2 rounded-full hover:bg-[#d43b44] transition-colors duration-200 font-semibold"
@@ -92,12 +100,25 @@ const Navbar: React.FC<NavbarProps> = ({ navItems }) => {
                 {item.name}
               </button>
             ))}
+            
+            {/* Mobile Login Button - Clean Gray */}
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                navigate('/login');
+              }}
+              className="w-full bg-gray-100 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-200 transition-colors font-medium text-center mt-2"
+            >
+              Login
+            </button>
+            
+            {/* Mobile Get Started Button */}
             <button 
               onClick={() => {
                 setIsMenuOpen(false);
                 navigate('/register');
               }}
-              className="w-full bg-[#ff444f] text-white px-4 py-2 rounded-full hover:bg-[#d43b44] mt-4"
+              className="w-full bg-[#ff444f] text-white px-4 py-3 rounded-xl hover:bg-[#d43b44] transition-colors font-semibold text-center"
             >
               Get Started
             </button>

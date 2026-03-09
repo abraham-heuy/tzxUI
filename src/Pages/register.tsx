@@ -1,7 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, TrendingUp, CreditCard, Key, PenSquare, CheckCircle, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  User, 
+  TrendingUp, 
+  CreditCard, 
+  Key, 
+  PenSquare, 
+  CheckCircle, 
+  FileText, 
+  X, 
+  ChevronLeft, 
+  ChevronRight 
+} from 'lucide-react';
 
 // Import components
 import ProgressSteps from '../components/common/ProgressSteps';
@@ -12,6 +24,9 @@ import SignatureStep from '../components/register/SignatureStep';
 import SuccessStep from '../components/register/SuccessStep';
 import MpesaLimitModal from '../components/register/MpesaLimitModal';
 
+// Import services
+import { registrationService } from '../services/registrationService';
+
 // Import data and types
 import type { FormData } from '../types/register';
 
@@ -20,7 +35,7 @@ import registerBg from '../assets/register.jpg';
 import { pools } from '../data/pool';
 import VerificationStep from '../components/register/verificationstep';
 
-// Steps configuration - Updated to 6 steps
+// Steps configuration
 const steps = [
   { id: 1, name: 'Basic Details', icon: User },
   { id: 2, name: 'Select Pool', icon: TrendingUp },
@@ -54,20 +69,17 @@ const Register = () => {
   const [isSendingPayment, setIsSendingPayment] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [paymentSent, setPaymentSent] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   
   // Signature and terms state
   const [signature, setSignature] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [signatureError, setSignatureError] = useState('');
 
-  // Generate random reference number
-  const generateReference = () => {
-    const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    return `#CaseTZX${randomNum}`;
-  };
-  const [referenceNumber] = useState(generateReference());
+  // Registration result
+  const [registrationResult, setRegistrationResult] = useState<any>(null);
 
-  // Form data state
+  // Form data state - updated initial investmentAmount to 0
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
@@ -76,10 +88,25 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     selectedPool: '',
-    investmentAmount: 5000,
+    investmentAmount: 0, // Changed from 5000 to 0
     mpesaPhone: '',
     mpesaCode: '',
   });
+
+  // Helper Functions
+  const formatAmount = (amount: number) => `KES ${amount.toLocaleString()}`;
+
+  const calculateFees = () => {
+    const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+    if (!selectedPoolData) return { fee: 0, total: 0 };
+    // Use the fixed amount from the pool
+    const investmentAmount = selectedPoolData.amount;
+    const fee = investmentAmount * selectedPoolData.fee;
+    return { fee, total: investmentAmount + fee };
+  };
+
+  const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+  const { fee, total } = calculateFees();
 
   // Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,81 +116,18 @@ const Register = () => {
       [name]: type === 'number' ? parseFloat(value) || 0 : value
     }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    setApiError(null);
   };
 
-  const adjustAmount = (increment: boolean) => {
-    const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-    if (!selectedPoolData) return;
-    
-    const step = 1000;
-    let newAmount = formData.investmentAmount;
-    newAmount = increment 
-      ? Math.min(newAmount + step, selectedPoolData.maxAmount)
-      : Math.max(newAmount - step, selectedPoolData.minAmount);
-    
-    setFormData(prev => ({ ...prev, investmentAmount: newAmount }));
-  };
+  // Removed adjustAmount function - no longer needed
 
   const handlePoolSelect = (poolId: string) => {
     const selectedPoolData = pools.find(p => p.id === poolId);
     setFormData(prev => ({ 
       ...prev, 
       selectedPool: poolId,
-      investmentAmount: selectedPoolData?.minAmount || 5000
+      investmentAmount: selectedPoolData?.amount || 0 // Set to fixed amount
     }));
-  };
-
-  const calculateFees = () => {
-    const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-    if (!selectedPoolData) return { fee: 0, total: formData.investmentAmount };
-    const fee = formData.investmentAmount * selectedPoolData.fee;
-    return { fee, total: formData.investmentAmount + fee };
-  };
-
-  // Payment handlers
-  const handleSendPayment = () => {
-    // Validate phone
-    if (!formData.mpesaPhone) {
-      setErrors(prev => ({ ...prev, mpesaPhone: 'Phone number is required' }));
-      return;
-    }
-    if (!/^\+?254\d{9}$/.test(formData.mpesaPhone.replace(/\s/g, ''))) {
-      setErrors(prev => ({ ...prev, mpesaPhone: 'Enter valid M-Pesa number' }));
-      return;
-    }
-    
-    setIsSendingPayment(true);
-    
-    // Simulate sending payment request
-    setTimeout(() => {
-      setIsSendingPayment(false);
-      setPaymentSent(true);
-      // Move to verification step
-      setCurrentStep(4);
-      setErrors({});
-    }, 2000);
-  };
-
-  const handleVerifyTransaction = () => {
-    // Validate transaction code
-    if (!formData.mpesaCode) {
-      setErrors(prev => ({ ...prev, mpesaCode: 'Transaction code is required' }));
-      return;
-    }
-    if (!/^[A-Z0-9]{10,12}$/i.test(formData.mpesaCode)) {
-      setErrors(prev => ({ ...prev, mpesaCode: 'Enter a valid M-Pesa transaction code' }));
-      return;
-    }
-    
-    setIsVerifying(true);
-    
-    // Simulate verification
-    setTimeout(() => {
-      setIsVerifying(false);
-      // Move to signature step
-      setCurrentStep(5);
-      setErrors({});
-    }, 1500);
   };
 
   // Validation
@@ -188,17 +152,8 @@ const Register = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.selectedPool) {
       newErrors.selectedPool = 'Please select an investment pool';
-    } else {
-      const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-      if (selectedPoolData) {
-        if (formData.investmentAmount < selectedPoolData.minAmount) {
-          newErrors.investmentAmount = `Minimum amount is KES ${selectedPoolData.minAmount.toLocaleString()}`;
-        }
-        if (formData.investmentAmount > selectedPoolData.maxAmount) {
-          newErrors.investmentAmount = `Maximum amount is KES ${selectedPoolData.maxAmount.toLocaleString()}`;
-        }
-      }
     }
+    // No amount validation needed since amounts are fixed
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -221,7 +176,99 @@ const Register = () => {
     return isValid;
   };
 
-  const handleNext = () => {
+  // API Handlers
+  const handleSendPayment = async () => {
+    // Validate phone
+    if (!formData.mpesaPhone) {
+      setErrors(prev => ({ ...prev, mpesaPhone: 'Phone number is required' }));
+      return;
+    }
+    if (!/^\+?254\d{9}$/.test(formData.mpesaPhone.replace(/\s/g, ''))) {
+      setErrors(prev => ({ ...prev, mpesaPhone: 'Enter valid M-Pesa number' }));
+      return;
+    }
+    
+    setIsSendingPayment(true);
+    setApiError(null);
+    
+    try {
+      const response = await registrationService.initiateMpesaPayment({
+        phoneNumber: formData.mpesaPhone,
+        amount: Math.floor(total), // Ensure whole number
+        reference: `TZX-${Date.now()}`
+      });
+      
+      console.log('Payment initiated:', response);
+      setPaymentSent(true);
+      setCurrentStep(4);
+      setErrors({});
+    } catch (error: any) {
+      setApiError(error.message || 'Payment failed. Please try again.');
+    } finally {
+      setIsSendingPayment(false);
+    }
+  };
+
+  const handleVerifyTransaction = () => {
+    // Validate transaction code
+    if (!formData.mpesaCode) {
+      setErrors(prev => ({ ...prev, mpesaCode: 'Transaction code is required' }));
+      return;
+    }
+    if (!/^[A-Z0-9]{10,12}$/i.test(formData.mpesaCode)) {
+      setErrors(prev => ({ ...prev, mpesaCode: 'Enter a valid M-Pesa transaction code' }));
+      return;
+    }
+    
+    setIsVerifying(true);
+    
+    // Simulate verification (in production, this would call an API)
+    setTimeout(() => {
+      setIsVerifying(false);
+      setCurrentStep(5);
+      setErrors({});
+    }, 1500);
+  };
+
+  const handleFinalSubmit = async () => {
+    setIsVerifying(true);
+    setApiError(null);
+    
+    try {
+      const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+      
+      if (!selectedPoolData) {
+        throw new Error('Please select an investment pool');
+      }
+      
+      const registrationData = {
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        idNumber: formData.idNumber,
+        password: formData.password,
+        selectedPool: {
+          name: selectedPoolData.name,
+          fee: selectedPoolData.fee
+        },
+        investmentAmount: selectedPoolData.amount, // Use fixed amount
+        mpesaPhone: formData.mpesaPhone,
+        mpesaTransactionCode: formData.mpesaCode,
+        digitalSignature: signature,
+        agreementSignedAt: new Date()
+      };
+      
+      const response = await registrationService.completeRegistration(registrationData);
+      setRegistrationResult(response.data);
+      setCurrentStep(6);
+    } catch (error: any) {
+      setApiError(error.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleNext = async () => {
     let isValid = false;
     switch (currentStep) {
       case 1: isValid = validateStep1(); break;
@@ -231,12 +278,16 @@ const Register = () => {
     }
     
     if (isValid) {
-      setCurrentStep(prev => Math.min(prev + 1, 6));
-      setErrors({});
-      setTouched({});
+      if (currentStep === 5) {
+        await handleFinalSubmit();
+      } else {
+        setCurrentStep(prev => Math.min(prev + 1, 6));
+        setErrors({});
+        setTouched({});
+      }
     } else {
       const allFields = ['fullName', 'email', 'phone', 'idNumber', 'password', 'confirmPassword', 
-                         'selectedPool', 'investmentAmount'];
+                         'selectedPool'];
       const newTouched: Record<string, boolean> = {};
       allFields.forEach(field => newTouched[field] = true);
       setTouched(newTouched);
@@ -246,14 +297,8 @@ const Register = () => {
   const handleBack = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
     setErrors({});
+    setApiError(null);
   };
-
-  const handleSubmit = () => setCurrentStep(6);
-
-  const formatAmount = (amount: number) => `KES ${amount.toLocaleString()}`;
-
-  const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-  const { fee, total } = calculateFees();
 
   return (
     <div className="min-h-screen bg-gray-50 font-['Inter,_sans-serif']">
@@ -261,12 +306,17 @@ const Register = () => {
       <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16">
-            <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-700 hover:text-[#ff444f]">
+            <button 
+              onClick={() => navigate('/')} 
+              className="flex items-center gap-2 text-gray-700 hover:text-[#ff444f] transition-colors"
+            >
               <ArrowLeft size={20} />
               <span className="font-medium">Back to Home</span>
             </button>
             <div className="flex-shrink-0 ml-auto">
-              <h1 className="text-2xl font-bold text-[#ff444f]">TZX<span className="text-gray-900">Trading</span></h1>
+              <h1 className="text-2xl font-bold text-[#ff444f]">
+                TZX<span className="text-gray-900">Trading</span>
+              </h1>
             </div>
           </div>
         </div>
@@ -274,7 +324,11 @@ const Register = () => {
 
       {/* Main Content */}
       <div className="pt-16">
-        <section className="relative py-12 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${registerBg})` }}>
+        {/* Hero Section */}
+        <section 
+          className="relative py-12 bg-cover bg-center bg-no-repeat" 
+          style={{ backgroundImage: `url(${registerBg})` }}
+        >
           <div className="absolute inset-0 bg-black/70" />
           <div className="relative max-w-4xl mx-auto px-4 text-center z-10">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
@@ -284,11 +338,19 @@ const Register = () => {
           </div>
         </section>
 
+        {/* Registration Form */}
         <section className="py-8 md:py-12">
           <div className="max-w-3xl mx-auto px-4 sm:px-6">
             <ProgressSteps steps={steps} currentStep={currentStep} />
 
             <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+              {/* API Error Display */}
+              {apiError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-sm">{apiError}</p>
+                </div>
+              )}
+
               <AnimatePresence mode="wait">
                 {currentStep === 1 && (
                   <BasicDetails
@@ -306,8 +368,6 @@ const Register = () => {
                     touched={touched}
                     selectedPoolData={selectedPoolData}
                     onPoolSelect={handlePoolSelect}
-                    onAmountChange={handleChange}
-                    onAdjustAmount={adjustAmount}
                     formatAmount={formatAmount}
                     onShowMpesaLimit={() => setIsMpesaLimitOpen(true)}
                   />
@@ -319,7 +379,7 @@ const Register = () => {
                     errors={errors}
                     touched={touched}
                     selectedPoolData={selectedPoolData}
-                    investmentAmount={formData.investmentAmount}
+                    investmentAmount={selectedPoolData?.amount || 0}
                     fee={fee}
                     total={total}
                     onChange={handleChange}
@@ -361,9 +421,9 @@ const Register = () => {
 
                 {currentStep === 6 && (
                   <SuccessStep
-                    referenceNumber={referenceNumber}
+                    referenceNumber={registrationResult?.investment?.reference || 'TZX-0000'}
                     fullName={formData.fullName}
-                    investmentAmount={formData.investmentAmount}
+                    investmentAmount={selectedPoolData?.amount || 0}
                     selectedPoolName={selectedPoolData?.name || ''}
                     signature={signature}
                     onReturnHome={() => navigate('/')}
@@ -372,36 +432,46 @@ const Register = () => {
                 )}
               </AnimatePresence>
 
-              {/* Navigation Buttons - Conditional based on step */}
+              {/* Navigation Buttons */}
               {currentStep < 6 && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-                  {/* Back button - hidden on steps with no back */}
-                  {currentStep > 1 && currentStep !== 3 && currentStep !== 4 && (
-                    <button onClick={handleBack}
-                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-100">
+                  {/* Back Button - Show for all steps except first */}
+                  {currentStep > 1 && (
+                    <button
+                      onClick={handleBack}
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
                       <ChevronLeft size={18} /> Back
                     </button>
                   )}
                   
-                  {/* Next/Continue button - only for steps with navigation */}
+                  {/* Continue Button - Only for steps with navigation */}
                   {currentStep === 1 && (
-                    <button onClick={handleNext}
-                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44]">
+                    <button
+                      onClick={handleNext}
+                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44] transition-all font-semibold"
+                    >
                       Continue <ChevronRight size={18} />
                     </button>
                   )}
                   
                   {currentStep === 2 && (
-                    <button onClick={handleNext}
-                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44]">
+                    <button
+                      onClick={handleNext}
+                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44] transition-all font-semibold"
+                    >
                       Continue to Payment <ChevronRight size={18} />
                     </button>
                   )}
                   
                   {currentStep === 5 && (
-                    <button onClick={handleSubmit}
-                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44]">
-                      Complete Registration <ChevronRight size={18} />
+                    <button
+                      onClick={handleNext}
+                      disabled={isVerifying}
+                      className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44] transition-all font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {isVerifying ? 'Processing...' : 'Complete Registration'}
+                      {!isVerifying && <ChevronRight size={18} />}
                     </button>
                   )}
                 </div>
@@ -415,17 +485,29 @@ const Register = () => {
       <AnimatePresence>
         {isTermsOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-md z-50" onClick={() => setIsTermsOpen(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-4 md:inset-8 z-50 flex items-center justify-center pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-md z-50"
+              onClick={() => setIsTermsOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-4 md:inset-8 z-50 flex items-center justify-center pointer-events-none"
+            >
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-full overflow-hidden pointer-events-auto flex flex-col">
                 <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-white">
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-amber-600" />
                     <h2 className="text-lg font-bold text-gray-900">Terms & Conditions</h2>
                   </div>
-                  <button onClick={() => setIsTermsOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                  <button
+                    onClick={() => setIsTermsOpen(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
                     <X size={20} className="text-gray-600" />
                   </button>
                 </div>
@@ -440,8 +522,10 @@ const Register = () => {
                   <div className="bg-amber-50 p-4 rounded-xl mt-4">
                     <p className="text-sm text-amber-800">{termsContent.agreement}</p>
                   </div>
-                  <button onClick={() => setIsTermsOpen(false)}
-                    className="w-full bg-amber-600 text-white py-3 rounded-xl hover:bg-amber-700 font-semibold mt-6">
+                  <button
+                    onClick={() => setIsTermsOpen(false)}
+                    className="w-full bg-amber-600 text-white py-3 rounded-xl hover:bg-amber-700 transition-colors font-semibold mt-6"
+                  >
                     I Have Read and Understand
                   </button>
                 </div>
@@ -452,7 +536,10 @@ const Register = () => {
       </AnimatePresence>
 
       {/* M-Pesa Limit Modal */}
-      <MpesaLimitModal isOpen={isMpesaLimitOpen} onClose={() => setIsMpesaLimitOpen(false)} />
+      <MpesaLimitModal 
+        isOpen={isMpesaLimitOpen} 
+        onClose={() => setIsMpesaLimitOpen(false)} 
+      />
     </div>
   );
 };
