@@ -1,39 +1,40 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, 
-  TrendingUp, 
-  CreditCard, 
-  Key, 
-  PenSquare, 
-  CheckCircle, 
-  ChevronLeft, 
-  ChevronRight} from 'lucide-react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowLeft,
+  TrendingUp,
+  CreditCard,
+  Key,
+  PenSquare,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 // Import components from register
-import ProgressSteps from '../../../components/common/ProgressSteps';
-import PoolSelection from '../../../components/register/PoolSelection';
-import PaymentStep from '../../../components/register/PaymentStep';
-import VerificationStep from '../../../components/register/verificationstep';
-import SignatureStep from '../../../components/register/SignatureStep';
-import MpesaLimitModal from '../../../components/register/MpesaLimitModal';
+import ProgressSteps from "../../../components/common/ProgressSteps";
+import PoolSelection from "../../../components/register/PoolSelection";
+import PaymentStep from "../../../components/register/PaymentStep";
+import VerificationStep from "../../../components/register/verificationstep";
+import SignatureStep from "../../../components/register/SignatureStep";
+import MpesaLimitModal from "../../../components/register/MpesaLimitModal";
 
 // Import services
-import { registrationService } from '../../../services/registrationService';
-import { userService } from '../../../services/user';
-import { useUser } from '../../../hooks/useUser';
+import { registrationService } from "../../../services/registrationService";
+import { userService } from "../../../services/user";
+import { useUser } from "../../../hooks/useUser";
 
 // Import data
-import { pools } from '../../../data/pool';
+import { pools } from "../../../data/pool";
 
 // Steps configuration (simplified for existing users)
 const steps = [
-  { id: 1, name: 'Select Pool', icon: TrendingUp },
-  { id: 2, name: 'Payment', icon: CreditCard },
-  { id: 3, name: 'Verify', icon: Key },
-  { id: 4, name: 'Sign', icon: PenSquare },
-  { id: 5, name: 'Complete', icon: CheckCircle }
+  { id: 1, name: "Select Pool", icon: TrendingUp },
+  { id: 2, name: "Payment", icon: CreditCard },
+  { id: 3, name: "Verify", icon: Key },
+  { id: 4, name: "Sign", icon: PenSquare },
+  { id: 5, name: "Complete", icon: CheckCircle },
 ];
 
 const NewInvestment = () => {
@@ -43,86 +44,73 @@ const NewInvestment = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isMpesaLimitOpen, setIsMpesaLimitOpen] = useState(false);
-  const [] = useState(false); // For terms modal if needed
-  
+
   // Payment states
   const [isSendingPayment, setIsSendingPayment] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [paymentSent, setPaymentSent] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  
-  // Signature state
-  const [signature, setSignature] = useState('');
-  const [signatureError, setSignatureError] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false); // If terms are needed
 
-  // Form data state (simplified - no basic details)
+  // Signature state
+  const [signature, setSignature] = useState("");
+  const [signatureError, setSignatureError] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Form data state
   const [formData, setFormData] = useState({
-    selectedPool: '',
+    selectedPool: "",
     investmentAmount: 5000,
-    mpesaPhone: '',
-    mpesaCode: '',
+    mpesaPhone: "",
+    mpesaCode: "",
   });
 
   // Helper Functions
   const formatAmount = (amount: number) => `KES ${amount.toLocaleString()}`;
 
   const calculateFees = () => {
-    const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+    const selectedPoolData = pools.find((p) => p.id === formData.selectedPool);
     if (!selectedPoolData) return { fee: 0, total: formData.investmentAmount };
     const fee = formData.investmentAmount * selectedPoolData.fee;
     return { fee, total: formData.investmentAmount + fee };
   };
 
-  const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+  const selectedPoolData = pools.find((p) => p.id === formData.selectedPool);
   const { fee, total } = calculateFees();
 
   // Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : value
+      [name]: type === "number" ? parseFloat(value) || 0 : value,
     }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError(null);
   };
 
-  const adjustAmount = (increment: boolean) => {
-    const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-    if (!selectedPoolData) return;
-    
-    const step = 1000;
-    let newAmount = formData.investmentAmount;
-    newAmount = increment 
-      ? Math.min(newAmount + step, selectedPoolData.maxAmount)
-      : Math.max(newAmount - step, selectedPoolData.minAmount);
-    
-    setFormData(prev => ({ ...prev, investmentAmount: newAmount }));
-  };
-
+  // For fixed amounts, we don't need adjustment - amount is tied to selected pool
   const handlePoolSelect = (poolId: string) => {
-    const selectedPoolData = pools.find(p => p.id === poolId);
-    setFormData(prev => ({ 
-      ...prev, 
+    const selectedPoolData = pools.find((p) => p.id === poolId);
+    setFormData((prev) => ({
+      ...prev,
       selectedPool: poolId,
-      investmentAmount: selectedPoolData?.minAmount || 5000
+      investmentAmount: selectedPoolData?.amount || 5000, // Use fixed amount from pool
     }));
   };
 
-  // Validation
+  // Validation - updated for fixed amounts
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.selectedPool) {
-      newErrors.selectedPool = 'Please select an investment pool';
+      newErrors.selectedPool = "Please select an investment pool";
     } else {
-      const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
+      const selectedPoolData = pools.find(
+        (p) => p.id === formData.selectedPool
+      );
       if (selectedPoolData) {
-        if (formData.investmentAmount < selectedPoolData.minAmount) {
-          newErrors.investmentAmount = `Minimum amount is KES ${selectedPoolData.minAmount.toLocaleString()}`;
-        }
-        if (formData.investmentAmount > selectedPoolData.maxAmount) {
-          newErrors.investmentAmount = `Maximum amount is KES ${selectedPoolData.maxAmount.toLocaleString()}`;
+        // For fixed amounts, check if the amount matches exactly
+        if (formData.investmentAmount !== selectedPoolData.amount) {
+          newErrors.investmentAmount = `Amount must be exactly KES ${selectedPoolData.amount.toLocaleString()} for this pool`;
         }
       }
     }
@@ -133,9 +121,9 @@ const NewInvestment = () => {
   const validateStep2 = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.mpesaPhone) {
-      newErrors.mpesaPhone = 'Phone number is required';
-    } else if (!/^\+?254\d{9}$/.test(formData.mpesaPhone.replace(/\s/g, ''))) {
-      newErrors.mpesaPhone = 'Enter valid M-Pesa number';
+      newErrors.mpesaPhone = "Phone number is required";
+    } else if (!/^\+?254\d{9}$/.test(formData.mpesaPhone.replace(/\s/g, ""))) {
+      newErrors.mpesaPhone = "Enter valid M-Pesa number";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -144,9 +132,9 @@ const NewInvestment = () => {
   const validateStep3 = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.mpesaCode) {
-      newErrors.mpesaCode = 'Transaction code is required';
+      newErrors.mpesaCode = "Transaction code is required";
     } else if (!/^[A-Z0-9]{10,12}$/i.test(formData.mpesaCode)) {
-      newErrors.mpesaCode = 'Enter a valid M-Pesa transaction code';
+      newErrors.mpesaCode = "Enter a valid M-Pesa transaction code";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -155,13 +143,16 @@ const NewInvestment = () => {
   const validateStep4 = () => {
     let isValid = true;
     if (!signature.trim()) {
-      setSignatureError('Please type your full name to sign');
+      setSignatureError("Please type your full name to sign");
       isValid = false;
-    } else if (user?.fullName && signature.toLowerCase() !== user.fullName.toLowerCase()) {
-      setSignatureError('Signature must match your full name exactly');
+    } else if (
+      user?.fullName &&
+      signature.toLowerCase() !== user.fullName.toLowerCase()
+    ) {
+      setSignatureError("Signature must match your full name exactly");
       isValid = false;
     } else {
-      setSignatureError('');
+      setSignatureError("");
     }
     return isValid;
   };
@@ -172,23 +163,23 @@ const NewInvestment = () => {
       setTouched({ ...touched, mpesaPhone: true });
       return;
     }
-    
+
     setIsSendingPayment(true);
     setApiError(null);
-    
+
     try {
       const response = await registrationService.initiateMpesaPayment({
         phoneNumber: formData.mpesaPhone,
         amount: Math.floor(total),
-        reference: `INV-${Date.now()}`
+        reference: `INV-${Date.now()}`,
       });
-      
-      console.log('Payment initiated:', response);
+
+      console.log("Payment initiated:", response);
       setPaymentSent(true);
       setCurrentStep(3);
       setErrors({});
     } catch (error: any) {
-      setApiError(error.message || 'Payment failed. Please try again.');
+      setApiError(error.message || "Payment failed. Please try again.");
     } finally {
       setIsSendingPayment(false);
     }
@@ -199,9 +190,9 @@ const NewInvestment = () => {
       setTouched({ ...touched, mpesaCode: true });
       return;
     }
-    
+
     setIsVerifying(true);
-    
+
     // Simulate verification (in production, this would call an API)
     setTimeout(() => {
       setIsVerifying(false);
@@ -212,34 +203,36 @@ const NewInvestment = () => {
 
   const handleFinalSubmit = async () => {
     if (!validateStep4()) return;
-    
+
     setIsVerifying(true);
     setApiError(null);
-    
+
     try {
-      const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-      
+      const selectedPoolData = pools.find(
+        (p) => p.id === formData.selectedPool
+      );
+
       if (!selectedPoolData) {
-        throw new Error('Please select an investment pool');
+        throw new Error("Please select an investment pool");
       }
-      
+
       const investmentData = {
         selectedPool: {
           name: selectedPoolData.name,
-          fee: selectedPoolData.fee
+          fee: selectedPoolData.fee,
         },
         investmentAmount: formData.investmentAmount,
         mpesaPhone: formData.mpesaPhone,
         mpesaTransactionCode: formData.mpesaCode,
         digitalSignature: signature,
-        agreementSignedAt: new Date()
+        agreementSignedAt: new Date(),
       };
-      
+
       const response = await userService.createTransaction(investmentData);
-      console.log('Investment created:', response);
+      console.log("Investment created:", response);
       setCurrentStep(5);
     } catch (error: any) {
-      setApiError(error.message || 'Investment failed. Please try again.');
+      setApiError(error.message || "Investment failed. Please try again.");
     } finally {
       setIsVerifying(false);
     }
@@ -248,13 +241,22 @@ const NewInvestment = () => {
   const handleNext = async () => {
     let isValid = false;
     switch (currentStep) {
-      case 1: isValid = validateStep1(); break;
-      case 2: isValid = validateStep2(); break;
-      case 3: isValid = validateStep3(); break;
-      case 4: isValid = validateStep4(); break;
-      default: isValid = true;
+      case 1:
+        isValid = validateStep1();
+        break;
+      case 2:
+        isValid = validateStep2();
+        break;
+      case 3:
+        isValid = validateStep3();
+        break;
+      case 4:
+        isValid = validateStep4();
+        break;
+      default:
+        isValid = true;
     }
-    
+
     if (isValid) {
       if (currentStep === 1) {
         setCurrentStep(2);
@@ -281,7 +283,7 @@ const NewInvestment = () => {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep((prev) => prev - 1);
       setErrors({});
       setApiError(null);
     }
@@ -293,8 +295,8 @@ const NewInvestment = () => {
       <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16">
-            <button 
-              onClick={() => navigate('/dashboard')} 
+            <button
+              onClick={() => navigate("/dashboard")}
               className="flex items-center gap-2 text-gray-700 hover:text-[#ff444f] transition-colors"
             >
               <ArrowLeft size={20} />
@@ -351,8 +353,6 @@ const NewInvestment = () => {
                     touched={touched}
                     selectedPoolData={selectedPoolData}
                     onPoolSelect={handlePoolSelect}
-                    onAmountChange={handleChange}
-                    onAdjustAmount={adjustAmount}
                     formatAmount={formatAmount}
                     onShowMpesaLimit={() => setIsMpesaLimitOpen(true)}
                   />
@@ -394,14 +394,13 @@ const NewInvestment = () => {
                 {/* Step 4: Sign */}
                 {currentStep === 4 && (
                   <SignatureStep
-                    fullName={user?.fullName || ''}
+                    fullName={user?.fullName || ""}
                     signature={signature}
                     signatureError={signatureError}
                     termsAccepted={termsAccepted}
-                    termsError={errors.terms || ''}
+                    termsError={errors.terms || ""}
                     onSignatureChange={setSignature}
                     onTermsChange={setTermsAccepted}
-                    // onViewTerms={() => setIsTermsOpen(true)} // Uncomment if you need terms
                   />
                 )}
 
@@ -415,28 +414,45 @@ const NewInvestment = () => {
                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <CheckCircle className="w-10 h-10 text-green-600" />
                     </div>
-                    
+
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                      Investment <span className="text-green-600">Created!</span>
+                      Investment{" "}
+                      <span className="text-green-600">Created!</span>
                     </h2>
-                    
+
                     <p className="text-gray-600 mb-6">
-                      Your investment has been submitted successfully and is pending approval.
+                      Your investment has been submitted successfully and is
+                      pending approval.
                     </p>
 
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6 text-left">
-                      <h3 className="font-semibold text-amber-800 mb-2">What happens next?</h3>
+                      <h3 className="font-semibold text-amber-800 mb-2">
+                        What happens next?
+                      </h3>
                       <ul className="space-y-2 text-sm text-amber-700">
                         <li className="flex items-start gap-2">
-                          <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
-                          <span>Your investment will be reviewed by our team</span>
+                          <CheckCircle
+                            size={16}
+                            className="mt-0.5 flex-shrink-0"
+                          />
+                          <span>
+                            Your investment will be reviewed by our team
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
-                          <span>You'll receive a notification once approved</span>
+                          <CheckCircle
+                            size={16}
+                            className="mt-0.5 flex-shrink-0"
+                          />
+                          <span>
+                            You'll receive a notification once approved
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+                          <CheckCircle
+                            size={16}
+                            className="mt-0.5 flex-shrink-0"
+                          />
                           <span>The trader will begin managing your funds</span>
                         </li>
                       </ul>
@@ -444,13 +460,13 @@ const NewInvestment = () => {
 
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                       <button
-                        onClick={() => navigate('/dashboard/transactions')}
+                        onClick={() => navigate("/dashboard/transactions")}
                         className="bg-[#ff444f] text-white px-6 py-3 rounded-xl hover:bg-[#d43b44] transition-colors font-semibold"
                       >
                         View My Investments
                       </button>
                       <button
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate("/dashboard")}
                         className="border border-gray-300 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors font-semibold"
                       >
                         Back to Dashboard
@@ -471,16 +487,22 @@ const NewInvestment = () => {
                       <ChevronLeft size={18} /> Back
                     </button>
                   )}
-                  
+
                   <button
                     onClick={handleNext}
                     disabled={isSendingPayment || isVerifying}
                     className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44] transition-all font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {isSendingPayment ? 'Sending...' : 
-                     isVerifying ? 'Processing...' : 
-                     currentStep === 4 ? 'Submit Investment' : 'Continue'}
-                    {!isSendingPayment && !isVerifying && <ChevronRight size={18} />}
+                    {isSendingPayment
+                      ? "Sending..."
+                      : isVerifying
+                      ? "Processing..."
+                      : currentStep === 4
+                      ? "Submit Investment"
+                      : "Continue"}
+                    {!isSendingPayment && !isVerifying && (
+                      <ChevronRight size={18} />
+                    )}
                   </button>
                 </div>
               )}
@@ -490,9 +512,9 @@ const NewInvestment = () => {
       </div>
 
       {/* M-Pesa Limit Modal */}
-      <MpesaLimitModal 
-        isOpen={isMpesaLimitOpen} 
-        onClose={() => setIsMpesaLimitOpen(false)} 
+      <MpesaLimitModal
+        isOpen={isMpesaLimitOpen}
+        onClose={() => setIsMpesaLimitOpen(false)}
       />
     </div>
   );

@@ -131,7 +131,7 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
             </p>
             <div className="mt-2 flex items-center gap-1">
               <span className="text-xs px-2 py-0.5 bg-[#ff444f]/10 text-[#ff444f] rounded-full capitalize">
-                {user?.role || 'user'}
+                {user?.role.name || 'user'}
               </span>
             </div>
           </div>

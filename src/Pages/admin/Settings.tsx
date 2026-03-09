@@ -9,11 +9,8 @@ import {
   Mail,
   Globe,
   Lock,
-  Key,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Settings as SettingsIcon  
 } from 'lucide-react';
 
 interface SettingsSection {
@@ -25,10 +22,10 @@ interface SettingsSection {
 
 const Settings = () => {
   const [activeSection, setActiveSection] = useState('general');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
-  // Form states
+  // Form states (keep all your existing state)
   const [generalSettings, setGeneralSettings] = useState({
     siteName: 'TZX Trading',
     siteUrl: 'https://tzxtrading.com',
@@ -502,7 +499,7 @@ const Settings = () => {
             {/* Placeholder for other sections */}
             {['users', 'email'].includes(activeSection) && (
               <div className="text-center py-12">
-                <Settings className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <SettingsIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   {sections.find(s => s.id === activeSection)?.title} Settings
                 </h3>

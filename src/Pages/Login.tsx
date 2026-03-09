@@ -30,6 +30,10 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
+  // Get role names from environment variables
+  const ADMIN_ROLE = import.meta.env.VITE_ADMIN_ROLE_NAME;
+  const INVESTOR_ROLE = import.meta.env.VITE_INVESTOR_ROLE_NAME || 'user';
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -89,12 +93,17 @@ const Login = () => {
         sessionStorage.setItem('userData', JSON.stringify(response.data.user));
       }
       
-      // Role-based redirect (based on actual role from backend)
+      // Role-based redirect using environment variables
       const userRole = response.data.user.role;
       
-      if (userRole === 'bossy') {
+      // Handle both string roles and object roles
+      const roleValue = typeof userRole === 'string' 
+        ? userRole 
+        : userRole?.name || userRole?.id || '';
+      
+      if (roleValue === ADMIN_ROLE) {
         navigate('/admin/dashboard');
-      } else {
+      } else if(roleValue === INVESTOR_ROLE){
         navigate('/user/dashboard');
       }
     } catch (error: any) {
@@ -287,8 +296,6 @@ const Login = () => {
                     </>
                   )}
                 </button>
-
-                
               </form>
             </motion.div>
 
