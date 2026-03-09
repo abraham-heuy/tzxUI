@@ -37,10 +37,10 @@ const AdminTopbar = ({ setSidebarOpen }: AdminTopbarProps) => {
 
   // Get user role display name
   const getRoleDisplay = () => {
-    if (!user?.role) return 'User';
-    return user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    if (!user?.role?.name) return 'User';
+    const roleName = user.role.name;
+    return roleName.charAt(0).toUpperCase() + roleName.slice(1);
   };
-
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
