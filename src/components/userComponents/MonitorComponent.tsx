@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Eye, 
+  EyeOff,
   Key, 
-  Copy, 
-  Check, 
   ExternalLink, 
   Calendar,
   DollarSign,
@@ -38,7 +37,7 @@ const TradingMonitor = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [visibleTokens, setVisibleTokens] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchUserTokens();
@@ -70,10 +69,15 @@ const TradingMonitor = () => {
     try {
       setIsLoading(true);
       setError(null);
-      // This endpoint should return all tokens assigned to the user
       const response = await userService.getMyTokens();
       setTokens(response.data);
       setFilteredTokens(response.data);
+      // Initialize visibility state (all hidden by default)
+      const visibility: Record<string, boolean> = {};
+      response.data.forEach(token => {
+        visibility[token.id] = false;
+      });
+      setVisibleTokens(visibility);
     } catch (err) {
       console.error('Failed to fetch tokens:', err);
       setError('Failed to load your trading tokens. Please try again.');
@@ -82,15 +86,19 @@ const TradingMonitor = () => {
     }
   };
 
-  const handleCopyToken = (token: string, reference: string) => {
-    navigator.clipboard.writeText(token);
-    setCopiedToken(reference);
-    setTimeout(() => setCopiedToken(null), 2000);
+  const toggleTokenVisibility = (tokenId: string) => {
+    setVisibleTokens(prev => ({
+      ...prev,
+      [tokenId]: !prev[tokenId]
+    }));
   };
 
-  const handleViewAccount = (token: string) => {
-    // Open Deriv with token (or use your custom viewer)
-    window.open(`https://app.deriv.com/?token=${token}`, '_blank');
+  const handleViewAccount = (token: string, reference: string) => {
+    // Encode the token for URL safety
+    const encodedToken = encodeURIComponent(token);
+    const encodedReference = encodeURIComponent(reference);
+    // Redirect to Deriv viewer with encoded parameters
+    window.open(`/view-trading?token=${encodedToken}&ref=${encodedReference}`, '_blank');
   };
 
   const formatDate = (dateString: string) => {
@@ -276,24 +284,30 @@ const TradingMonitor = () => {
                   <span className="font-bold text-gray-900">{formatCurrency(token.investmentAmount)}</span>
                 </div>
 
-                {/* Token Display */}
+                {/* Token Display with Eye Toggle */}
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 mb-2">Deriv Token</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <code className="text-xs font-mono text-gray-800 break-all flex-1">
-                      {token.derivToken.substring(0, 30)}...
-                    </code>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-gray-500">Deriv Token</p>
                     <button
-                      onClick={() => handleCopyToken(token.derivToken, token.investmentReference)}
-                      className="p-2 hover:bg-white rounded-lg transition-colors"
-                      title="Copy token"
+                      onClick={() => toggleTokenVisibility(token.id)}
+                      className="p-1 hover:bg-gray-200 rounded transition-colors"
+                      title={visibleTokens[token.id] ? "Hide token" : "Show token"}
                     >
-                      {copiedToken === token.investmentReference ? (
-                        <Check size={16} className="text-green-600" />
+                      {visibleTokens[token.id] ? (
+                        <EyeOff size={16} className="text-gray-500" />
                       ) : (
-                        <Copy size={16} className="text-gray-500" />
+                        <Eye size={16} className="text-gray-500" />
                       )}
                     </button>
+                  </div>
+                  <div className="font-mono text-sm break-all">
+                    {visibleTokens[token.id] ? (
+                      <span className="text-gray-800">{token.derivToken}</span>
+                    ) : (
+                      <span className="text-gray-400 select-none">
+                        ••••••••••••••••••••••••••••••
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -313,7 +327,7 @@ const TradingMonitor = () => {
 
                 {/* Action Button */}
                 <button
-                  onClick={() => handleViewAccount(token.derivToken)}
+                  onClick={() => handleViewAccount(token.derivToken, token.investmentReference)}
                   className="w-full flex items-center justify-center gap-2 bg-[#ff444f] text-white py-3 rounded-xl hover:bg-[#d43b44] transition-colors font-medium"
                 >
                   <ExternalLink size={16} />

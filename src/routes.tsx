@@ -16,6 +16,7 @@ import PublicRoute from "./components/adminComponents/publicRoutes";
 import ProtectedRoute from "./components/adminComponents/protectedRoute";
 import { ROLES } from "./config/roles";
 import NotFound from "./Pages/NotFound";
+import DerivViewer from "./components/userComponents/derivViewer";
 
 export const AppRoutes = () => {
   return (
@@ -27,6 +28,8 @@ export const AppRoutes = () => {
       <Route path="/pools" element={<PoolsPage />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faqs" element={<FAQs />} />
+      <Route path="/view-trading" element={<DerivViewer />} />
+
       {/* Auth Routes */}
       <Route element={<PublicRoute />}>
         <Route path="/register" element={<Register />} />
