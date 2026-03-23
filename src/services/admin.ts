@@ -45,6 +45,32 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface DerivTokenTransaction {
+  id: string;
+  investmentReference: string;
+  user: {
+    fullName: string;
+    email: string;
+  };
+  investmentAmount: number;
+  poolName: string;
+  derivToken: string | null;
+  tokenAssignedAt: string | null;
+  tokenNotes: string | null;
+  createdAt: string;
+}
+
+export interface AssignDerivTokenResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    investmentReference: string;
+    derivToken: string;
+    tokenAssignedAt: string;
+  };
+}
+
 export const adminService = {
   /**
    * Get dashboard statistics
@@ -148,6 +174,46 @@ export const adminService = {
    */
   closeTicket: async (id: string): Promise<{ success: boolean; message: string; data: any }> => {
     const response = await api.patch(`/other/tickets/${id}/close`);
+    return response.data;
+  },
+
+  // ============ DERIV TOKEN ROUTES ============
+
+  /**
+   * Assign Deriv token to a transaction (Admin only)
+   */
+  assignDerivToken: async (transactionId: string, token: string, notes?: string): Promise<AssignDerivTokenResponse> => {
+    const response = await api.patch(`/other/transactions/${transactionId}/deriv-token`, { token, notes });
+    return response.data;
+  },
+
+  /**
+   * Update Deriv token for a transaction (Admin only)
+   */
+  updateDerivToken: async (transactionId: string, token: string, notes?: string): Promise<AssignDerivTokenResponse> => {
+    const response = await api.put(`/other/transactions/${transactionId}/deriv-token`, { token, notes });
+    return response.data;
+  },
+
+  /**
+   * Get all transactions with Deriv tokens (Admin only)
+   */
+  getTransactionsWithTokens: async (params?: {
+    page?: number;
+    limit?: number;
+    hasToken?: boolean;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  }): Promise<PaginatedResponse<DerivTokenTransaction>> => {
+    const response = await api.get('/other/transactions/tokens', { params });
+    return response.data;
+  },
+
+  /**
+   * Test Deriv token connection (Admin only)
+   */
+  testDerivToken: async (token: string): Promise<{ success: boolean; message: string; account?: any }> => {
+    const response = await api.post('/other/deriv/test-token', { token });
     return response.data;
   }
 };

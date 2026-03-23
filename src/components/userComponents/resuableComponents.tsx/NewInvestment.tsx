@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -44,6 +44,8 @@ const NewInvestment = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isMpesaLimitOpen, setIsMpesaLimitOpen] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState<number>(130);
+  const [loadingExchange, setLoadingExchange] = useState(true);
 
   // Payment states
   const [isSendingPayment, setIsSendingPayment] = useState(false);
@@ -59,23 +61,49 @@ const NewInvestment = () => {
   // Form data state
   const [formData, setFormData] = useState({
     selectedPool: "",
-    investmentAmount: 5000,
+    investmentAmount: 0, // Will hold KES amount
     mpesaPhone: "",
     mpesaCode: "",
   });
 
+  // Fetch exchange rate
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      try {
+        const response = await fetch(
+          "https://api.exchangerate-api.com/v4/latest/USD",
+        );
+        const data = await response.json();
+        if (data.rates?.KES) {
+          setExchangeRate(data.rates.KES);
+        }
+      } catch (error) {
+        console.error("Failed to fetch exchange rate:", error);
+        setExchangeRate(130);
+      } finally {
+        setLoadingExchange(false);
+      }
+    };
+    fetchExchangeRate();
+  }, []);
+
   // Helper Functions
   const formatAmount = (amount: number) => `KES ${amount.toLocaleString()}`;
 
-  const calculateFees = () => {
-    const selectedPoolData = pools.find((p) => p.id === formData.selectedPool);
-    if (!selectedPoolData) return { fee: 0, total: formData.investmentAmount };
-    const fee = formData.investmentAmount * selectedPoolData.fee;
-    return { fee, total: formData.investmentAmount + fee };
+  // Calculate KES amount from USD
+  const calculateKesAmount = (usdAmount: number): number => {
+    return Math.round(usdAmount * exchangeRate);
   };
 
   const selectedPoolData = pools.find((p) => p.id === formData.selectedPool);
-  const { fee, total } = calculateFees();
+  
+  // Calculate the KES amount for the selected pool
+  const kesAmount = selectedPoolData 
+    ? calculateKesAmount(selectedPoolData.usdAmount) 
+    : 0;
+  
+  // No fees - just the investment amount
+  const total = kesAmount;
 
   // Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,31 +116,23 @@ const NewInvestment = () => {
     setApiError(null);
   };
 
-  // For fixed amounts, we don't need adjustment - amount is tied to selected pool
   const handlePoolSelect = (poolId: string) => {
     const selectedPoolData = pools.find((p) => p.id === poolId);
-    setFormData((prev) => ({
-      ...prev,
-      selectedPool: poolId,
-      investmentAmount: selectedPoolData?.amount || 5000, // Use fixed amount from pool
-    }));
+    if (selectedPoolData) {
+      const kesAmountValue = calculateKesAmount(selectedPoolData.usdAmount);
+      setFormData((prev) => ({
+        ...prev,
+        selectedPool: poolId,
+        investmentAmount: kesAmountValue, // Store KES amount
+      }));
+    }
   };
 
-  // Validation - updated for fixed amounts
+  // Validation - updated for fixed USD amounts
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.selectedPool) {
       newErrors.selectedPool = "Please select an investment pool";
-    } else {
-      const selectedPoolData = pools.find(
-        (p) => p.id === formData.selectedPool
-      );
-      if (selectedPoolData) {
-        // For fixed amounts, check if the amount matches exactly
-        if (formData.investmentAmount !== selectedPoolData.amount) {
-          newErrors.investmentAmount = `Amount must be exactly KES ${selectedPoolData.amount.toLocaleString()} for this pool`;
-        }
-      }
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -168,9 +188,10 @@ const NewInvestment = () => {
     setApiError(null);
 
     try {
+      // Send the KES amount to M-Pesa
       const response = await registrationService.initiateMpesaPayment({
         phoneNumber: formData.mpesaPhone,
-        amount: Math.floor(total),
+        amount: Math.floor(total), // Use the KES amount, rounded to whole number
         reference: `INV-${Date.now()}`,
       });
 
@@ -193,7 +214,6 @@ const NewInvestment = () => {
 
     setIsVerifying(true);
 
-    // Simulate verification (in production, this would call an API)
     setTimeout(() => {
       setIsVerifying(false);
       setCurrentStep(4);
@@ -221,7 +241,7 @@ const NewInvestment = () => {
           name: selectedPoolData.name,
           fee: selectedPoolData.fee,
         },
-        investmentAmount: formData.investmentAmount,
+        investmentAmount: kesAmount, // Store KES amount in database
         mpesaPhone: formData.mpesaPhone,
         mpesaTransactionCode: formData.mpesaCode,
         digitalSignature: signature,
@@ -271,7 +291,6 @@ const NewInvestment = () => {
       const fieldsToTouch: Record<string, boolean> = {};
       if (currentStep === 1) {
         fieldsToTouch.selectedPool = true;
-        fieldsToTouch.investmentAmount = true;
       } else if (currentStep === 2) {
         fieldsToTouch.mpesaPhone = true;
       } else if (currentStep === 3) {
@@ -355,6 +374,8 @@ const NewInvestment = () => {
                     onPoolSelect={handlePoolSelect}
                     formatAmount={formatAmount}
                     onShowMpesaLimit={() => setIsMpesaLimitOpen(true)}
+                    exchangeRate={exchangeRate}
+                    loadingExchange={loadingExchange}
                   />
                 )}
 
@@ -365,8 +386,8 @@ const NewInvestment = () => {
                     errors={errors}
                     touched={touched}
                     selectedPoolData={selectedPoolData}
-                    investmentAmount={formData.investmentAmount}
-                    fee={fee}
+                    investmentAmount={kesAmount} // Pass KES amount
+                    fee={0} // No fee
                     total={total}
                     onChange={handleChange}
                     onSendPayment={handleSendPayment}

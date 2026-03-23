@@ -8,7 +8,8 @@ import {
   LogOut,
   ChevronRight,
   X,
-  Mail
+  Mail,
+  Eye
 } from 'lucide-react';
 import { useUser } from '../../../hooks/useUser';
 
@@ -27,6 +28,7 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
     { name: 'Transactions', icon: CreditCard, path: '/admin/transactions' },
     { name: 'Support Tickets', icon: Ticket, path: '/admin/tickets' },
     { name: 'Contacts', icon: Mail, path: '/admin/contact' }, 
+     { name: 'Deriv Tokens', icon: Eye, path: '/admin/deriv-tokens' },
     { name: 'Users', icon: Users, path: '/admin/users' },
     { name: 'Settings', icon: Settings, path: '/admin/settings' },
   ];

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react'; // Removed Minus, Plus imports
+import { Check, DollarSign, Clock, Zap } from 'lucide-react';
 import { pools } from '../../data/pool';
 
 interface PoolSelectionProps {
@@ -10,6 +10,8 @@ interface PoolSelectionProps {
   onPoolSelect: (poolId: string) => void;
   formatAmount: (amount: number) => string;
   onShowMpesaLimit: () => void;
+  exchangeRate?: number;
+  loadingExchange?: boolean;
 }
 
 const PoolSelection = ({ 
@@ -19,23 +21,48 @@ const PoolSelection = ({
   selectedPoolData,
   onPoolSelect, 
   formatAmount,
-  onShowMpesaLimit
+  onShowMpesaLimit,
+  exchangeRate = 130,
+  loadingExchange = false
 }: PoolSelectionProps) => {
+  
+  const getReturnPeriodIcon = (period: string) => {
+    if (period === '3 days') return <Zap size={14} className="text-yellow-500" />;
+    return <Clock size={14} className="text-blue-500" />;
+  };
+
+  const formatUSD = (amount: number) => `$${amount}`;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
     >
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">
         Select <span className="text-[#ff444f]">Investment Pool</span>
       </h2>
+      
+      {/* Exchange Rate Info */}
+      <div className="mb-6 p-3 bg-blue-50 rounded-lg flex items-center gap-2 text-sm">
+        <DollarSign size={16} className="text-blue-600" />
+        <span className="text-blue-700">
+          Current exchange rate: 
+          {loadingExchange ? (
+            <span className="ml-1 inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <strong className="ml-1">1 USD = {formatAmount(Math.round(exchangeRate))}</strong>
+          )}
+        </span>
+      </div>
 
-      {/* Pool Selection - Fixed amounts */}
+      {/* Pool Selection */}
       <div className="space-y-4 mb-6">
         {pools.map(pool => {
           const PoolIcon = pool.icon;
           const isSelected = formData.selectedPool === pool.id;
+          // Calculate KES amount (rounded to whole number)
+          const kesAmount = Math.round(pool.usdAmount * exchangeRate);
           
           return (
             <button
@@ -58,26 +85,35 @@ const PoolSelection = ({
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-gray-900">{pool.name}</h3>
-                    <span className={`text-sm font-medium text-${pool.color}-600`}>
-                      {pool.risk} Risk
-                    </span>
+                    <div className="flex items-center gap-1 text-xs">
+                      {getReturnPeriodIcon(pool.returnPeriod)}
+                      <span className="text-gray-500">{pool.returnPeriod}</span>
+                    </div>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{pool.description}</p>
                   
-                  {/* Fixed Amount Display */}
-                  <div className="flex items-center gap-4 text-sm mb-2">
-                    <span className="font-bold text-[#ff444f]">
-                      {formatAmount(pool.amount)}
-                    </span>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                      Returns after {pool.returnPeriod}
-                    </span>
+                  {/* Amount Display - USD and KES */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500">USD:</span>
+                      <span className="font-medium text-gray-700">{formatUSD(pool.usdAmount)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">KES:</span>
+                      <span className="font-bold text-[#ff444f] text-base">
+                        {formatAmount(kesAmount)}
+                      </span>
+                    </div>
                   </div>
                   
                   {/* Details Row */}
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span>Returns: {pool.returns}</span>
-                    <span>Fee: {(pool.fee * 100)}%</span>
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                      Returns: {pool.returns}
+                    </span>
+                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                      Fee: {(pool.fee * 100)}%
+                    </span>
                   </div>
 
                   {/* Selected Indicator */}
@@ -98,20 +134,26 @@ const PoolSelection = ({
         <p className="text-red-500 text-sm mb-4">{errors.selectedPool}</p>
       )}
 
-      {/* No amount input - fixed amounts only */}
-      {selectedPoolData && selectedPoolData.id !== 'test' && selectedPoolData.amount > 299999 && (
-        <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <p className="text-xs text-yellow-700">
-            Amount exceeds M-Pesa limit (KES 299,999). 
-            <button 
-              onClick={onShowMpesaLimit}
-              className="ml-1 text-[#ff444f] font-medium underline"
-            >
-              View options
-            </button>
-          </p>
-        </div>
-      )}
+      {/* M-Pesa Limit Warning */}
+      {selectedPoolData && (() => {
+        const kesAmount = Math.round(selectedPoolData.usdAmount * exchangeRate);
+        if (kesAmount > 299999) {
+          return (
+            <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-xs text-yellow-700">
+                Amount exceeds M-Pesa limit (KES 299,999). 
+                <button 
+                  onClick={onShowMpesaLimit}
+                  className="ml-1 text-[#ff444f] font-medium underline"
+                >
+                  View options
+                </button>
+              </p>
+            </div>
+          );
+        }
+        return null;
+      })()}
     </motion.div>
   );
 };

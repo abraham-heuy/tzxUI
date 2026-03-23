@@ -11,8 +11,10 @@ import {
   BookOpen,
   Eye,
   Timer,
-  TrendingDown,
-  AlertOctagon
+  AlertOctagon,
+  Percent,
+  Wallet,
+  RefreshCw
 } from 'lucide-react';
 
 const Disclaimer = forwardRef<HTMLDivElement>((_, ref) => {
@@ -34,14 +36,14 @@ const Disclaimer = forwardRef<HTMLDivElement>((_, ref) => {
         content: "Our investment pools are managed by professional traders who employ various strategies. Pool performance varies based on market conditions, strategy execution, and risk management. Returns are not guaranteed and can fluctuate. Minimum investment periods apply to each pool as specified in the pool description."
       },
       {
-        title: "3. Profit & Loss",
-        icon: <TrendingDown className="w-5 h-5 text-amber-600" />,
-        content: "The trader manages all withdrawals and profit distributions. If there are no profits in a given period, there will be no withdrawals processed. Trading losses are a normal part of market activity and investors must accept that losses may occur. The trader determines when profits are available for withdrawal based on pool performance."
+        title: "3. Profit & Loss & Refund Policy",
+        icon: <RefreshCw className="w-5 h-5 text-amber-600" />,
+        content: "The trader manages all withdrawals and profit distributions. If there are no profits in a given period, there will be no withdrawals processed. Trading losses are a normal part of market activity and investors must accept that losses may occur. The trader determines when profits are available for withdrawal based on pool performance.\n\nIn the event of significant losses that deplete the trading account to zero, the following policy applies: Investors will receive a 50% refund of their original investment amount. The remaining 50% is considered a shared loss, reflecting the equal distribution of risk between the trader and the investor. This policy ensures that both parties share the consequences of market downturns proportionately."
       },
       {
         title: "4. Withdrawal Policy",
         icon: <Timer className="w-5 h-5 text-amber-600" />,
-        content: "Withdrawals are processed only when profits are available. The trader handles all withdrawal requests and determines the timing based on pool liquidity and market conditions. Investors must wait for profitable trading periods before any withdrawals can be made. There is no guaranteed withdrawal schedule."
+        content: "Withdrawals are processed only when profits are available. The trader handles all withdrawal requests and determines the timing based on pool liquidity and market conditions. Investors must wait for profitable trading periods before any withdrawals can be made. There is no guaranteed withdrawal schedule.\n\nIf you choose to cash out before profits are realized, you will receive only your original investment amount (minus any applicable fees). No profits will be paid out for early withdrawals. This ensures that profits are only distributed when the trading strategy has successfully generated returns."
       },
       {
         title: "5. Fees and Charges",
@@ -70,7 +72,7 @@ const Disclaimer = forwardRef<HTMLDivElement>((_, ref) => {
       }
     ],
 
-    agreement: "By investing with TZX Trading, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions and all associated risks. You understand that trading losses are possible and that withdrawals are processed only when profits are available."
+    agreement: "By investing with TZX Trading, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions and all associated risks. You understand that trading losses are possible, that withdrawals are processed only when profits are available, and that early withdrawals forfeit any accrued profits."
   };
 
   // Disclaimer points
@@ -86,14 +88,14 @@ const Disclaimer = forwardRef<HTMLDivElement>((_, ref) => {
       description: "The trader manages all withdrawals. If there's no profit, there's no withdrawal. Be patient."
     },
     {
-      icon: <TrendingDown className="w-5 h-5 text-amber-600" />,
-      title: "Losses Are Possible",
-      description: "Trading losses are normal. Accept that losses may occur as part of the investment process."
+      icon: <Percent className="w-5 h-5 text-amber-600" />,
+      title: "50% Refund Policy",
+      description: "If the account suffers a total loss, you receive 50% of your investment back. Risk is shared equally."
     },
     {
-      icon: <Shield className="w-5 h-5 text-amber-600" />,
-      title: "Past Performance",
-      description: "Historical returns do not guarantee future results. Market conditions can change rapidly."
+      icon: <Wallet className="w-5 h-5 text-amber-600" />,
+      title: "Early Withdrawal",
+      description: "Cashing out before profits? You get your investment amount back, but no profits."
     }
   ];
 
@@ -143,11 +145,49 @@ const Disclaimer = forwardRef<HTMLDivElement>((_, ref) => {
             ))}
           </div>
 
-          {/* NEW: Deriv Risk Disclosure Section */}
+          {/* Refund & Early Withdrawal Policy Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
+            className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-xl p-6 shadow-md"
+          >
+            <div className="flex flex-col md:flex-row items-start gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <RefreshCw className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-blue-800 mb-3">Risk Sharing & Refund Policy</h3>
+                <div className="space-y-4 text-sm text-blue-800">
+                  <div className="bg-white/50 rounded-lg p-4">
+                    <p className="font-semibold mb-2">Equal Risk Sharing</p>
+                    <p>We believe in sharing both success and challenges equally. Our model ensures that:</p>
+                    <ul className="mt-2 space-y-2 list-disc list-inside pl-2">
+                      <li>Losses are distributed proportionately between the trader and investors</li>
+                      <li>If the trading account suffers a total loss, investors receive <span className="font-bold">50% of their original investment</span> back</li>
+                      <li>The remaining 50% reflects the shared risk and consequences of market downturns</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-white/50 rounded-lg p-4">
+                    <p className="font-semibold mb-2">Early Withdrawal Policy</p>
+                    <ul className="space-y-2 list-disc list-inside pl-2">
+                      <li>If you withdraw <span className="font-bold">before profits are realized</span>, you receive only your original investment amount</li>
+                      <li>No profits will be paid out for early withdrawals</li>
+                      <li>This ensures that profits are only distributed after successful trading</li>
+                      <li>Standard withdrawal fees still apply</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Deriv Risk Disclosure Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
             className="mb-8 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-6 shadow-md"
           >
             <div className="flex flex-col md:flex-row items-start gap-4">
@@ -211,7 +251,7 @@ const Disclaimer = forwardRef<HTMLDivElement>((_, ref) => {
           >
             <p className="text-xs text-gray-400 max-w-2xl mx-auto">
               *TZX Trading does not provide investment advice. All investment decisions are made by professional traders. 
-              Trading losses are possible and withdrawals are processed only when profits are available.
+              Trading losses are possible and withdrawals are processed only when profits are available. Early withdrawals forfeit profits.
             </p>
           </motion.div>
         </div>
@@ -289,7 +329,7 @@ const Disclaimer = forwardRef<HTMLDivElement>((_, ref) => {
                             {section.title}
                           </h3>
                         </div>
-                        <p className="text-gray-600 text-sm leading-relaxed pl-11">
+                        <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line pl-11">
                           {section.content}
                         </p>
                       </motion.div>

@@ -6,7 +6,8 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  X} from 'lucide-react';
+  X,
+  MonitorCheckIcon} from 'lucide-react';
 import { useUser } from '../../../hooks/useUser';
 
 interface UserSidebarProps {
@@ -22,6 +23,7 @@ const UserSidebar = ({ sidebarOpen, setSidebarOpen }: UserSidebarProps) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/user/dashboard' },
     { name: 'My Transactions', icon: CreditCard, path: '/user/transactions' },
+    {name: 'Monitor Trading', icon: MonitorCheckIcon, path: '/user/monitor'},
     { name: 'Support Tickets', icon: MessageCircle, path: '/user/tickets' },
     { name: 'Settings', icon: Settings, path: '/user/settings' },
   ];

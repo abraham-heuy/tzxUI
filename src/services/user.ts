@@ -1,6 +1,5 @@
 import api from './api';
 
-
 export interface User {
   id: string;
   fullName: string;
@@ -19,6 +18,7 @@ export interface User {
   totalTickets?: number;
   totalInvested?: number;
 }
+
 export interface CreateTransactionData {
   selectedPool: {
     name: string;
@@ -81,6 +81,31 @@ export interface Ticket {
   user?: {
     fullName: string;
     email: string;
+  };
+}
+
+export interface DerivToken {
+  id: string;
+  investmentReference: string;
+  derivToken: string;
+  tokenAssignedAt: string;
+  tokenNotes: string | null;
+  poolName: string;
+  investmentAmount: number;
+  status: string;
+}
+
+export interface DerivTokenResponse {
+  success: boolean;
+  data: {
+    id: string;
+    investmentReference: string;
+    derivToken: string;
+    tokenAssignedAt: string;
+    tokenNotes: string | null;
+    poolName: string;
+    investmentAmount: number;
+    status: string;
   };
 }
 
@@ -158,6 +183,22 @@ export const userService = {
    */
   getTransactionDetails: async (id: string): Promise<{ success: boolean; data: Transaction }> => {
     const response = await api.get(`/other/transactions/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Get Deriv token for a specific transaction
+   */
+  getMyDerivToken: async (transactionId: string): Promise<DerivTokenResponse> => {
+    const response = await api.get(`/other/transactions/my/${transactionId}/deriv-token`);
+    return response.data;
+  },
+  
+  /**
+   * Get all tokens assigned to the user
+   */
+  getMyTokens: async (): Promise<{ success: boolean; data: DerivToken[] }> => {
+    const response = await api.get('/other/transanctions/tokens');
     return response.data;
   },
 };

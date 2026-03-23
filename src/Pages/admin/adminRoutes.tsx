@@ -6,6 +6,7 @@ import SupportTickets from './SupportTickets';
 import Settings from './Settings';
 import ContactMessages from './ContactMessages';
 import Users from './Users';
+import DerivTokens from './adminTokens';
 
 export const adminRoutes = (
   <Route path="/admin" element={<AdminLayout />}>
@@ -14,6 +15,8 @@ export const adminRoutes = (
     <Route path="transactions" element={<Transactions />} />
     <Route path="tickets" element={<SupportTickets />} />
     <Route path="settings" element={<Settings />} />
+    <Route path="deriv-tokens" element={<DerivTokens />} />
+
     <Route path="users" element={<Users />} />
     <Route path="contact" element={<ContactMessages />} />
 

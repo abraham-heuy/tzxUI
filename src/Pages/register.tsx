@@ -1,60 +1,78 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, 
-  User, 
-  TrendingUp, 
-  CreditCard, 
-  Key, 
-  PenSquare, 
-  CheckCircle, 
-  FileText, 
-  X, 
-  ChevronLeft, 
-  ChevronRight 
-} from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowLeft,
+  User,
+  TrendingUp,
+  CreditCard,
+  Key,
+  PenSquare,
+  CheckCircle,
+  FileText,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 // Import components
-import ProgressSteps from '../components/common/ProgressSteps';
-import BasicDetails from '../components/register/BasicDetails';
-import PoolSelection from '../components/register/PoolSelection';
-import PaymentStep from '../components/register/PaymentStep';
-import SignatureStep from '../components/register/SignatureStep';
-import SuccessStep from '../components/register/SuccessStep';
-import MpesaLimitModal from '../components/register/MpesaLimitModal';
+import ProgressSteps from "../components/common/ProgressSteps";
+import BasicDetails from "../components/register/BasicDetails";
+import PoolSelection from "../components/register/PoolSelection";
+import PaymentStep from "../components/register/PaymentStep";
+import SignatureStep from "../components/register/SignatureStep";
+import SuccessStep from "../components/register/SuccessStep";
+import MpesaLimitModal from "../components/register/MpesaLimitModal";
 
 // Import services
-import { registrationService } from '../services/registrationService';
+import { registrationService } from "../services/registrationService";
 
 // Import data and types
-import type { FormData } from '../types/register';
+import type { FormData } from "../types/register";
 
 // Import background image
-import registerBg from '../assets/register.jpg';
-import { pools } from '../data/pool';
-import VerificationStep from '../components/register/verificationstep';
+import registerBg from "../assets/register.jpg";
+import { pools } from "../data/pool";
+import VerificationStep from "../components/register/verificationstep";
 
 // Steps configuration
 const steps = [
-  { id: 1, name: 'Basic Details', icon: User },
-  { id: 2, name: 'Select Pool', icon: TrendingUp },
-  { id: 3, name: 'Payment', icon: CreditCard },
-  { id: 4, name: 'Verify', icon: Key },
-  { id: 5, name: 'Sign & Agree', icon: PenSquare },
-  { id: 6, name: 'Complete', icon: CheckCircle }
+  { id: 1, name: "Basic Details", icon: User },
+  { id: 2, name: "Select Pool", icon: TrendingUp },
+  { id: 3, name: "Payment", icon: CreditCard },
+  { id: 4, name: "Verify", icon: Key },
+  { id: 5, name: "Sign & Agree", icon: PenSquare },
+  { id: 6, name: "Complete", icon: CheckCircle },
 ];
 
 // Terms and Conditions content
 const termsContent = {
-  introduction: "Welcome to TZX Trading. By accessing or using our platform, you agree to be bound by these Terms and Conditions.",
+  introduction:
+    "Welcome to TZX Trading. By accessing or using our platform, you agree to be bound by these Terms and Conditions.",
   sections: [
-    { title: "1. Risk Disclosure", content: "Trading in financial markets involves substantial risk of loss. Past performance does not guarantee future results." },
-    { title: "2. Investment Pools", content: "Our investment pools are managed by professional traders. Returns are not guaranteed and can fluctuate." },
-    { title: "3. Profit & Loss", content: "The trader manages all withdrawals and profit distributions. Losses are a normal part of trading." },
-    { title: "4. Fees and Charges", content: "Management fees are charged monthly and deducted from pool profits before distribution." }
+    {
+      title: "1. Risk Disclosure",
+      content:
+        "Trading in financial markets involves substantial risk of loss. Past performance does not guarantee future results.",
+    },
+    {
+      title: "2. Investment Pools",
+      content:
+        "Our investment pools are managed by professional traders. Returns are not guaranteed and can fluctuate.",
+    },
+    {
+      title: "3. Profit & Loss",
+      content:
+        "The trader manages all withdrawals and profit distributions. Losses are a normal part of trading.",
+    },
+    {
+      title: "4. Fees and Charges",
+      content:
+        "Management fees are charged monthly and deducted from pool profits before distribution.",
+    },
   ],
-  agreement: "By investing with TZX Trading, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions."
+  agreement:
+    "By investing with TZX Trading, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.",
 };
 
 const Register = () => {
@@ -64,86 +82,119 @@ const Register = () => {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isMpesaLimitOpen, setIsMpesaLimitOpen] = useState(false);
-  
+
   // Payment states
   const [isSendingPayment, setIsSendingPayment] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [paymentSent, setPaymentSent] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  
+
   // Signature and terms state
-  const [signature, setSignature] = useState('');
+  const [signature, setSignature] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [signatureError, setSignatureError] = useState('');
+  const [signatureError, setSignatureError] = useState("");
+  const [exchangeRate, setExchangeRate] = useState<number>(130);
+  const [loadingExchange, setLoadingExchange] = useState(true);
 
   // Registration result
   const [registrationResult, setRegistrationResult] = useState<any>(null);
 
   // Form data state - updated initial investmentAmount to 0
   const [formData, setFormData] = useState<FormData>({
-    fullName: '',
-    email: '',
-    phone: '',
-    idNumber: '',
-    password: '',
-    confirmPassword: '',
-    selectedPool: '',
-    investmentAmount: 0, // Changed from 5000 to 0
-    mpesaPhone: '',
-    mpesaCode: '',
+    fullName: "",
+    email: "",
+    phone: "",
+    idNumber: "",
+    password: "",
+    confirmPassword: "",
+    selectedPool: "",
+    investmentAmount: 0, // Will hold the KES amount
+    mpesaPhone: "",
+    mpesaCode: "",
   });
+
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      try {
+        const response = await fetch(
+          "https://api.exchangerate-api.com/v4/latest/USD",
+        );
+        const data = await response.json();
+        if (data.rates?.KES) {
+          setExchangeRate(data.rates.KES);
+        }
+      } catch (error) {
+        console.error("Failed to fetch exchange rate:", error);
+        // Use fallback rate
+        setExchangeRate(130);
+      } finally {
+        setLoadingExchange(false);
+      }
+    };
+    fetchExchangeRate();
+  }, []);
 
   // Helper Functions
   const formatAmount = (amount: number) => `KES ${amount.toLocaleString()}`;
 
-  const calculateFees = () => {
-    const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-    if (!selectedPoolData) return { fee: 0, total: 0 };
-    // Use the fixed amount from the pool
-    const investmentAmount = selectedPoolData.amount;
-    const fee = investmentAmount * selectedPoolData.fee;
-    return { fee, total: investmentAmount + fee };
+  // Calculate KES amount from USD
+  const calculateKesAmount = (usdAmount: number): number => {
+    return Math.round(usdAmount * exchangeRate);
   };
 
-  const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-  const { fee, total } = calculateFees();
+  const selectedPoolData = pools.find((p) => p.id === formData.selectedPool);
+  
+  // Calculate the KES amount for the selected pool
+  const kesAmount = selectedPoolData 
+    ? calculateKesAmount(selectedPoolData.usdAmount) 
+    : 0;
+
+  // No fees - just the investment amount
+  const total = kesAmount;
 
   // Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : value
+      [name]: type === "number" ? parseFloat(value) || 0 : value,
     }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError(null);
   };
 
-  // Removed adjustAmount function - no longer needed
-
   const handlePoolSelect = (poolId: string) => {
-    const selectedPoolData = pools.find(p => p.id === poolId);
-    setFormData(prev => ({ 
-      ...prev, 
-      selectedPool: poolId,
-      investmentAmount: selectedPoolData?.amount || 0 // Set to fixed amount
-    }));
+    const selectedPoolData = pools.find((p) => p.id === poolId);
+    if (selectedPoolData) {
+      const kesAmountValue = calculateKesAmount(selectedPoolData.usdAmount);
+      setFormData((prev) => ({
+        ...prev,
+        selectedPool: poolId,
+        investmentAmount: kesAmountValue, // Store KES amount
+      }));
+    }
   };
 
   // Validation
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
-    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Valid email is required';
-    if (!formData.phone.trim() || !/^\+?254\d{9}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Valid Kenyan number required';
+    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
+    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email))
+      newErrors.email = "Valid email is required";
+    if (
+      !formData.phone.trim() ||
+      !/^\+?254\d{9}$/.test(formData.phone.replace(/\s/g, ""))
+    ) {
+      newErrors.phone = "Valid Kenyan number required";
     }
     if (!formData.idNumber.trim() || !/^\d{5,8}$/.test(formData.idNumber)) {
-      newErrors.idNumber = 'Valid ID number required';
+      newErrors.idNumber = "Valid ID number required";
     }
-    if (!formData.password || formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-    
+    if (!formData.password || formData.password.length < 8)
+      newErrors.password = "Password must be at least 8 characters";
+    if (formData.password !== formData.confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -151,9 +202,8 @@ const Register = () => {
   const validateStep2 = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.selectedPool) {
-      newErrors.selectedPool = 'Please select an investment pool';
+      newErrors.selectedPool = "Please select an investment pool";
     }
-    // No amount validation needed since amounts are fixed
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -161,16 +211,19 @@ const Register = () => {
   const validateStep5 = () => {
     let isValid = true;
     if (!signature.trim()) {
-      setSignatureError('Please type your full name to sign');
+      setSignatureError("Please type your full name to sign");
       isValid = false;
     } else if (signature.toLowerCase() !== formData.fullName.toLowerCase()) {
-      setSignatureError('Signature must match your full name exactly');
+      setSignatureError("Signature must match your full name exactly");
       isValid = false;
     } else {
-      setSignatureError('');
+      setSignatureError("");
     }
     if (!termsAccepted) {
-      setErrors(prev => ({ ...prev, terms: 'You must accept the terms and conditions' }));
+      setErrors((prev) => ({
+        ...prev,
+        terms: "You must accept the terms and conditions",
+      }));
       isValid = false;
     }
     return isValid;
@@ -180,49 +233,60 @@ const Register = () => {
   const handleSendPayment = async () => {
     // Validate phone
     if (!formData.mpesaPhone) {
-      setErrors(prev => ({ ...prev, mpesaPhone: 'Phone number is required' }));
+      setErrors((prev) => ({
+        ...prev,
+        mpesaPhone: "Phone number is required",
+      }));
       return;
     }
-    if (!/^\+?254\d{9}$/.test(formData.mpesaPhone.replace(/\s/g, ''))) {
-      setErrors(prev => ({ ...prev, mpesaPhone: 'Enter valid M-Pesa number' }));
+    if (!/^\+?254\d{9}$/.test(formData.mpesaPhone.replace(/\s/g, ""))) {
+      setErrors((prev) => ({
+        ...prev,
+        mpesaPhone: "Enter valid M-Pesa number",
+      }));
       return;
     }
-    
+
     setIsSendingPayment(true);
     setApiError(null);
-    
+
     try {
+      // Send the KES amount (total) to M-Pesa
       const response = await registrationService.initiateMpesaPayment({
         phoneNumber: formData.mpesaPhone,
-        amount: Math.floor(total), // Ensure whole number
-        reference: `TZX-${Date.now()}`
+        amount: Math.floor(total), // Use the KES amount, rounded to whole number
+        reference: `TZX-${Date.now()}`,
       });
-      
-      console.log('Payment initiated:', response);
+
+      console.log("Payment initiated:", response);
       setPaymentSent(true);
       setCurrentStep(4);
       setErrors({});
     } catch (error: any) {
-      setApiError(error.message || 'Payment failed. Please try again.');
+      setApiError(error.message || "Payment failed. Please try again.");
     } finally {
       setIsSendingPayment(false);
     }
   };
 
   const handleVerifyTransaction = () => {
-    // Validate transaction code
     if (!formData.mpesaCode) {
-      setErrors(prev => ({ ...prev, mpesaCode: 'Transaction code is required' }));
+      setErrors((prev) => ({
+        ...prev,
+        mpesaCode: "Transaction code is required",
+      }));
       return;
     }
     if (!/^[A-Z0-9]{10,12}$/i.test(formData.mpesaCode)) {
-      setErrors(prev => ({ ...prev, mpesaCode: 'Enter a valid M-Pesa transaction code' }));
+      setErrors((prev) => ({
+        ...prev,
+        mpesaCode: "Enter a valid M-Pesa transaction code",
+      }));
       return;
     }
-    
+
     setIsVerifying(true);
-    
-    // Simulate verification (in production, this would call an API)
+
     setTimeout(() => {
       setIsVerifying(false);
       setCurrentStep(5);
@@ -233,14 +297,16 @@ const Register = () => {
   const handleFinalSubmit = async () => {
     setIsVerifying(true);
     setApiError(null);
-    
+
     try {
-      const selectedPoolData = pools.find(p => p.id === formData.selectedPool);
-      
+      const selectedPoolData = pools.find(
+        (p) => p.id === formData.selectedPool,
+      );
+
       if (!selectedPoolData) {
-        throw new Error('Please select an investment pool');
+        throw new Error("Please select an investment pool");
       }
-      
+
       const registrationData = {
         fullName: formData.fullName,
         email: formData.email,
@@ -249,20 +315,21 @@ const Register = () => {
         password: formData.password,
         selectedPool: {
           name: selectedPoolData.name,
-          fee: selectedPoolData.fee
+          fee: selectedPoolData.fee,
         },
-        investmentAmount: selectedPoolData.amount, // Use fixed amount
+        investmentAmount: kesAmount, // Store the KES amount in the database
         mpesaPhone: formData.mpesaPhone,
         mpesaTransactionCode: formData.mpesaCode,
         digitalSignature: signature,
-        agreementSignedAt: new Date()
+        agreementSignedAt: new Date(),
       };
-      
-      const response = await registrationService.completeRegistration(registrationData);
+
+      const response =
+        await registrationService.completeRegistration(registrationData);
       setRegistrationResult(response.data);
       setCurrentStep(6);
     } catch (error: any) {
-      setApiError(error.message || 'Registration failed. Please try again.');
+      setApiError(error.message || "Registration failed. Please try again.");
     } finally {
       setIsVerifying(false);
     }
@@ -271,31 +338,45 @@ const Register = () => {
   const handleNext = async () => {
     let isValid = false;
     switch (currentStep) {
-      case 1: isValid = validateStep1(); break;
-      case 2: isValid = validateStep2(); break;
-      case 5: isValid = validateStep5(); break;
-      default: isValid = true;
+      case 1:
+        isValid = validateStep1();
+        break;
+      case 2:
+        isValid = validateStep2();
+        break;
+      case 5:
+        isValid = validateStep5();
+        break;
+      default:
+        isValid = true;
     }
-    
+
     if (isValid) {
       if (currentStep === 5) {
         await handleFinalSubmit();
       } else {
-        setCurrentStep(prev => Math.min(prev + 1, 6));
+        setCurrentStep((prev) => Math.min(prev + 1, 6));
         setErrors({});
         setTouched({});
       }
     } else {
-      const allFields = ['fullName', 'email', 'phone', 'idNumber', 'password', 'confirmPassword', 
-                         'selectedPool'];
+      const allFields = [
+        "fullName",
+        "email",
+        "phone",
+        "idNumber",
+        "password",
+        "confirmPassword",
+        "selectedPool",
+      ];
       const newTouched: Record<string, boolean> = {};
-      allFields.forEach(field => newTouched[field] = true);
+      allFields.forEach((field) => (newTouched[field] = true));
       setTouched(newTouched);
     }
   };
 
   const handleBack = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
     setErrors({});
     setApiError(null);
   };
@@ -306,8 +387,8 @@ const Register = () => {
       <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16">
-            <button 
-              onClick={() => navigate('/')} 
+            <button
+              onClick={() => navigate("/")}
               className="flex items-center gap-2 text-gray-700 hover:text-[#ff444f] transition-colors"
             >
               <ArrowLeft size={20} />
@@ -325,16 +406,19 @@ const Register = () => {
       {/* Main Content */}
       <div className="pt-16">
         {/* Hero Section */}
-        <section 
-          className="relative py-12 bg-cover bg-center bg-no-repeat" 
+        <section
+          className="relative py-12 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${registerBg})` }}
         >
           <div className="absolute inset-0 bg-black/70" />
           <div className="relative max-w-4xl mx-auto px-4 text-center z-10">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              Start Your <span className="text-[#ff444f]">Investment Journey</span>
+              Start Your{" "}
+              <span className="text-[#ff444f]">Investment Journey</span>
             </h1>
-            <p className="text-gray-200">Complete the steps below to get started</p>
+            <p className="text-gray-200">
+              Complete the steps below to get started
+            </p>
           </div>
         </section>
 
@@ -370,6 +454,8 @@ const Register = () => {
                     onPoolSelect={handlePoolSelect}
                     formatAmount={formatAmount}
                     onShowMpesaLimit={() => setIsMpesaLimitOpen(true)}
+                    exchangeRate={exchangeRate}
+                    loadingExchange={loadingExchange}
                   />
                 )}
 
@@ -379,9 +465,9 @@ const Register = () => {
                     errors={errors}
                     touched={touched}
                     selectedPoolData={selectedPoolData}
-                    investmentAmount={selectedPoolData?.amount || 0}
-                    fee={fee}
-                    total={total}
+                    investmentAmount={kesAmount} // Pass KES amount
+                    fee={0} // No fee
+                    total={total} // Total = KES amount
                     onChange={handleChange}
                     onSendPayment={handleSendPayment}
                     formatAmount={formatAmount}
@@ -410,23 +496,26 @@ const Register = () => {
                     signature={signature}
                     signatureError={signatureError}
                     termsAccepted={termsAccepted}
-                    termsError={errors.terms || ''}
+                    termsError={errors.terms || ""}
                     onSignatureChange={setSignature}
                     onTermsChange={(checked) => {
                       setTermsAccepted(checked);
-                      if (checked) setErrors(prev => ({ ...prev, terms: '' }));
+                      if (checked)
+                        setErrors((prev) => ({ ...prev, terms: "" }));
                     }}
                   />
                 )}
 
                 {currentStep === 6 && (
                   <SuccessStep
-                    referenceNumber={registrationResult?.investment?.reference || 'TZX-0000'}
+                    referenceNumber={
+                      registrationResult?.investment?.reference || "TZX-0000"
+                    }
                     fullName={formData.fullName}
-                    investmentAmount={selectedPoolData?.amount || 0}
-                    selectedPoolName={selectedPoolData?.name || ''}
+                    investmentAmount={kesAmount}
+                    selectedPoolName={selectedPoolData?.name || ""}
                     signature={signature}
-                    onReturnHome={() => navigate('/')}
+                    onReturnHome={() => navigate("/")}
                     formatAmount={formatAmount}
                   />
                 )}
@@ -435,7 +524,6 @@ const Register = () => {
               {/* Navigation Buttons */}
               {currentStep < 6 && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-                  {/* Back Button - Show for all steps except first */}
                   {currentStep > 1 && (
                     <button
                       onClick={handleBack}
@@ -444,8 +532,7 @@ const Register = () => {
                       <ChevronLeft size={18} /> Back
                     </button>
                   )}
-                  
-                  {/* Continue Button - Only for steps with navigation */}
+
                   {currentStep === 1 && (
                     <button
                       onClick={handleNext}
@@ -454,7 +541,7 @@ const Register = () => {
                       Continue <ChevronRight size={18} />
                     </button>
                   )}
-                  
+
                   {currentStep === 2 && (
                     <button
                       onClick={handleNext}
@@ -463,14 +550,14 @@ const Register = () => {
                       Continue to Payment <ChevronRight size={18} />
                     </button>
                   )}
-                  
+
                   {currentStep === 5 && (
                     <button
                       onClick={handleNext}
                       disabled={isVerifying}
                       className="ml-auto flex items-center gap-2 bg-[#ff444f] text-white px-8 py-3 rounded-xl hover:bg-[#d43b44] transition-all font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      {isVerifying ? 'Processing...' : 'Complete Registration'}
+                      {isVerifying ? "Processing..." : "Complete Registration"}
                       {!isVerifying && <ChevronRight size={18} />}
                     </button>
                   )}
@@ -502,7 +589,9 @@ const Register = () => {
                 <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-white">
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-amber-600" />
-                    <h2 className="text-lg font-bold text-gray-900">Terms & Conditions</h2>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      Terms & Conditions
+                    </h2>
                   </div>
                   <button
                     onClick={() => setIsTermsOpen(false)}
@@ -512,15 +601,21 @@ const Register = () => {
                   </button>
                 </div>
                 <div className="p-6 overflow-y-auto">
-                  <p className="text-sm text-gray-700 mb-4">{termsContent.introduction}</p>
+                  <p className="text-sm text-gray-700 mb-4">
+                    {termsContent.introduction}
+                  </p>
                   {termsContent.sections.map((section, index) => (
                     <div key={index} className="mb-4">
-                      <h3 className="font-semibold text-gray-900 mb-2">{section.title}</h3>
+                      <h3 className="font-semibold text-gray-900 mb-2">
+                        {section.title}
+                      </h3>
                       <p className="text-sm text-gray-600">{section.content}</p>
                     </div>
                   ))}
                   <div className="bg-amber-50 p-4 rounded-xl mt-4">
-                    <p className="text-sm text-amber-800">{termsContent.agreement}</p>
+                    <p className="text-sm text-amber-800">
+                      {termsContent.agreement}
+                    </p>
                   </div>
                   <button
                     onClick={() => setIsTermsOpen(false)}
@@ -536,9 +631,9 @@ const Register = () => {
       </AnimatePresence>
 
       {/* M-Pesa Limit Modal */}
-      <MpesaLimitModal 
-        isOpen={isMpesaLimitOpen} 
-        onClose={() => setIsMpesaLimitOpen(false)} 
+      <MpesaLimitModal
+        isOpen={isMpesaLimitOpen}
+        onClose={() => setIsMpesaLimitOpen(false)}
       />
     </div>
   );
