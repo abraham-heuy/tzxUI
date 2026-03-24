@@ -1,64 +1,101 @@
-import { Shield, TrendingUp, Users } from 'lucide-react';
+import { Shield, TrendingUp, Users, Crown } from 'lucide-react';
 
-export const pools = [
+export interface Pool {
+  id: string;
+  name: string;
+  usdAmount: number;
+  target: number;
+  slotsRemaining: number;
+  totalSlots: number;
+  profit: number;
+  returnPeriod: string;
+  returnPeriodDisplay: string;
+  description: string;
+  icon: any;
+  color: string;
+  fee: number;
+  risk: string;
+}
+
+export const pools: Pool[] = [
   {
     id: 'starter',
     name: 'Starter Pool',
     usdAmount: 20,
-    returns: '20-35%',
+    target: 1000,
+    slotsRemaining: 10,
+    totalSlots: 10,
+    profit: 55,
     returnPeriod: '7 days',
+    returnPeriodDisplay: '7 days',
+    description: '10 slots available. Target: $1,000 with 55% profit.',
     icon: Shield,
     color: 'green',
-    description: 'Perfect for beginners. Start with just $20.',
     fee: 0.02,
-    features: ['7-day return period', 'Up to 35% returns']
+    risk: 'Low'
   },
   {
     id: 'basic',
     name: 'Basic Pool',
     usdAmount: 50,
-    returns: '25-40%',
+    target: 2500,
+    slotsRemaining: 6,
+    totalSlots: 6,
+    profit: 55,
     returnPeriod: '7 days',
+    returnPeriodDisplay: '7 days',
+    description: '6 slots available. Target: $2,500 with 55% profit.',
     icon: Shield,
     color: 'teal',
-    description: 'Steady growth with minimal risk.',
     fee: 0.025,
-    features: ['7-day return period', 'Up to 40% returns']
+    risk: 'Low-Medium'
   },
   {
     id: 'growth',
     name: 'Growth Pool',
     usdAmount: 100,
-    returns: '35-50%',
+    target: 800,
+    slotsRemaining: 1,
+    totalSlots: 1,
+    profit: 55,
     returnPeriod: '3 days',
-    icon: TrendingUp,
+    returnPeriodDisplay: '3 days',
+    description: 'EXCLUSIVE: 1 person pool. Target: $800 with 55% profit.',
+    icon: Crown,
     color: 'blue',
-    description: 'High returns for intermediate investors.',
     fee: 0.03,
-    features: ['3-day return period', 'Up to 50% returns']
+    risk: 'Medium'
   },
   {
     id: 'premium',
     name: 'Premium Pool',
     usdAmount: 300,
-    returns: '45-60%',
-    returnPeriod: '3 days',
+    target: 0,
+    slotsRemaining: 0,
+    totalSlots: 0,
+    profit: 55,
+    returnPeriod: 'Any time',
+    returnPeriodDisplay: 'Any time (Daily)',
+    description: 'Custom target. Withdraw any profit daily. 55% profit.',
     icon: TrendingUp,
     color: 'purple',
-    description: 'Premium returns for serious investors.',
     fee: 0.035,
-    features: ['3-day return period', 'Up to 60% returns']
+    risk: 'Medium-High'
   },
   {
     id: 'elite',
     name: 'Elite Pool',
     usdAmount: 750,
-    returns: '55-75%',
-    returnPeriod: '3 days',
+    target: 0,
+    slotsRemaining: 0,
+    totalSlots: 0,
+    profit: 55,
+    returnPeriod: 'Any time',
+    returnPeriodDisplay: 'Any time (Instant)',
+    description: 'Custom target. Withdraw any profit instantly. 55% profit.',
     icon: Users,
     color: 'amber',
-    description: 'Maximum returns for experienced investors.',
     fee: 0.04,
-    features: ['3-day return period', 'Up to 75% returns']
+    risk: 'High'
   }
 ];

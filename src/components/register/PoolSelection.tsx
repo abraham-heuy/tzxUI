@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, DollarSign, Clock, Zap } from 'lucide-react';
+import { Check, DollarSign, Clock, Zap, Users2, Crown } from 'lucide-react';
 import { pools } from '../../data/pool';
 
 interface PoolSelectionProps {
@@ -28,7 +28,19 @@ const PoolSelection = ({
   
   const getReturnPeriodIcon = (period: string) => {
     if (period === '3 days') return <Zap size={14} className="text-yellow-500" />;
+    if (period === 'Any time') return <Zap size={14} className="text-purple-500" />;
     return <Clock size={14} className="text-blue-500" />;
+  };
+
+  const getRiskColor = (risk: string) => {
+    switch(risk) {
+      case 'Low': return 'text-green-600 bg-green-50';
+      case 'Low-Medium': return 'text-green-500 bg-green-50';
+      case 'Medium': return 'text-yellow-600 bg-yellow-50';
+      case 'Medium-High': return 'text-orange-600 bg-orange-50';
+      case 'High': return 'text-red-600 bg-red-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
   };
 
   const formatUSD = (amount: number) => `$${amount}`;
@@ -61,8 +73,9 @@ const PoolSelection = ({
         {pools.map(pool => {
           const PoolIcon = pool.icon;
           const isSelected = formData.selectedPool === pool.id;
-          // Calculate KES amount (rounded to whole number)
           const kesAmount = Math.round(pool.usdAmount * exchangeRate);
+          const showSlotInfo = pool.slotsRemaining !== undefined && pool.slotsRemaining > 0;
+          const isExclusive = pool.name === 'Growth Pool';
           
           return (
             <button
@@ -74,8 +87,8 @@ const PoolSelection = ({
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                   isSelected ? 'bg-[#ff444f]' : 'bg-gray-100'
                 }`}>
                   <PoolIcon className={`w-6 h-6 ${
@@ -83,11 +96,29 @@ const PoolSelection = ({
                   }`} />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
                     <h3 className="font-semibold text-gray-900">{pool.name}</h3>
-                    <div className="flex items-center gap-1 text-xs">
-                      {getReturnPeriodIcon(pool.returnPeriod)}
-                      <span className="text-gray-500">{pool.returnPeriod}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 text-xs">
+                        {getReturnPeriodIcon(pool.returnPeriod)}
+                        <span className="text-gray-500">{pool.returnPeriodDisplay}</span>
+                      </div>
+                      {showSlotInfo && !isExclusive && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 rounded-full">
+                          <Users2 size={10} className="text-orange-600" />
+                          <span className="text-xs font-medium text-orange-600">
+                            {pool.slotsRemaining}/{pool.totalSlots} slots
+                          </span>
+                        </div>
+                      )}
+                      {isExclusive && pool.slotsRemaining === 1 && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full">
+                          <Crown size={10} className="text-white" />
+                          <span className="text-xs font-medium text-white">
+                            1 person pool
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{pool.description}</p>
@@ -107,13 +138,23 @@ const PoolSelection = ({
                   </div>
                   
                   {/* Details Row */}
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                      Returns: {pool.returns}
+                      Profit: {pool.profit}%
                     </span>
-                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                      Fee: {(pool.fee * 100)}%
+                    <span className={`${getRiskColor(pool.risk)} px-2 py-0.5 rounded-full`}>
+                      Risk: {pool.risk}
                     </span>
+                    {pool.target > 0 && (
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                        Target: ${pool.target.toLocaleString()}
+                      </span>
+                    )}
+                    {pool.target === 0 && (
+                      <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                        Custom target
+                      </span>
+                    )}
                   </div>
 
                   {/* Selected Indicator */}

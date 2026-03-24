@@ -198,22 +198,15 @@ export const adminService = {
   /**
    * Get all transactions with Deriv tokens (Admin only)
    */
-  getTransactionsWithTokens: async (params?: {
-    page?: number;
-    limit?: number;
-    hasToken?: boolean;
-    sortBy?: string;
-    sortOrder?: 'ASC' | 'DESC';
-  }): Promise<PaginatedResponse<DerivTokenTransaction>> => {
-    const response = await api.get('/other/transactions/tokens', { params });
-    return response.data;
-  },
+getTransactionsWithTokens: async (params?: {
+  page?: number;
+  limit?: number;
+  hasToken?: boolean;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+}): Promise<PaginatedResponse<DerivTokenTransaction>> => {
+  const response = await api.get('/other/admin/tokens', { params }); // Changed to /admin/tokens
+  return response.data;
+},
 
-  /**
-   * Test Deriv token connection (Admin only)
-   */
-  testDerivToken: async (token: string): Promise<{ success: boolean; message: string; account?: any }> => {
-    const response = await api.post('/other/deriv/test-token', { token });
-    return response.data;
-  }
 };

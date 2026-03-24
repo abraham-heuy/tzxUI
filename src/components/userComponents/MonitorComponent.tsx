@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Eye, 
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { userService } from '../../services/user';
 import { useUser } from '../../hooks/useUser';
+import { useTradingSession } from '../../context/tradingContext'; 
 
 interface DerivToken {
   id: string;
@@ -31,6 +33,9 @@ interface DerivToken {
 
 const TradingMonitor = () => {
   useUser();
+  const navigate = useNavigate();
+  const { openSession } = useTradingSession();
+
   const [tokens, setTokens] = useState<DerivToken[]>([]);
   const [filteredTokens, setFilteredTokens] = useState<DerivToken[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +53,6 @@ const TradingMonitor = () => {
 
     let filtered = tokens;
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(t => 
         t.investmentReference.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,7 +61,6 @@ const TradingMonitor = () => {
       );
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(t => t.status === statusFilter);
     }
@@ -72,9 +75,8 @@ const TradingMonitor = () => {
       const response = await userService.getMyTokens();
       setTokens(response.data);
       setFilteredTokens(response.data);
-      // Initialize visibility state (all hidden by default)
       const visibility: Record<string, boolean> = {};
-      response.data.forEach(token => {
+      response.data.forEach((token: DerivToken) => {
         visibility[token.id] = false;
       });
       setVisibleTokens(visibility);
@@ -93,12 +95,17 @@ const TradingMonitor = () => {
     }));
   };
 
-  const handleViewAccount = (token: string, reference: string) => {
-    // Encode the token for URL safety
-    const encodedToken = encodeURIComponent(token);
-    const encodedReference = encodeURIComponent(reference);
-    // Redirect to Deriv viewer with encoded parameters
-    window.open(`/view-trading?token=${encodedToken}&ref=${encodedReference}`, '_blank');
+  // ── KEY FIX: store token in context, navigate internally ──────────────────
+  const handleViewAccount = (token: DerivToken) => {
+    openSession({
+      token: token.derivToken,
+      appId: import.meta.env.VITE_DERIV_APP_ID ?? '36544',
+      investmentId: token.id,
+      investmentReference: token.investmentReference,
+      poolName: token.poolName,
+      investmentAmount: token.investmentAmount,
+    });
+    navigate('/user/view-trading');
   };
 
   const formatDate = (dateString: string) => {
@@ -200,7 +207,6 @@ const TradingMonitor = () => {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-lg p-4 border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-3 text-gray-400" size={18} />
             <input
@@ -211,8 +217,6 @@ const TradingMonitor = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent outline-none"
             />
           </div>
-          
-          {/* Status Filter */}
           <div className="flex items-center gap-2 min-w-[140px]">
             <Filter size={18} className="text-gray-400" />
             <select
@@ -228,15 +232,12 @@ const TradingMonitor = () => {
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
           <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
           <p className="text-red-600">{error}</p>
-          <button
-            onClick={fetchUserTokens}
-            className="mt-2 text-sm text-[#ff444f] hover:underline"
-          >
+          <button onClick={fetchUserTokens} className="mt-2 text-sm text-[#ff444f] hover:underline">
             Try again
           </button>
         </div>
@@ -264,7 +265,7 @@ const TradingMonitor = () => {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow"
             >
-              {/* Header */}
+              {/* Card Header */}
               <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -276,42 +277,36 @@ const TradingMonitor = () => {
                 <p className="text-sm text-gray-500">{token.poolName}</p>
               </div>
 
-              {/* Content */}
+              {/* Card Body */}
               <div className="p-5 space-y-4">
-                {/* Amount */}
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">Investment Amount</span>
                   <span className="font-bold text-gray-900">{formatCurrency(token.investmentAmount)}</span>
                 </div>
 
-                {/* Token Display with Eye Toggle */}
+                {/* Token visibility toggle */}
                 <div className="bg-gray-50 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs text-gray-500">Deriv Token</p>
                     <button
                       onClick={() => toggleTokenVisibility(token.id)}
                       className="p-1 hover:bg-gray-200 rounded transition-colors"
-                      title={visibleTokens[token.id] ? "Hide token" : "Show token"}
+                      title={visibleTokens[token.id] ? 'Hide token' : 'Show token'}
                     >
-                      {visibleTokens[token.id] ? (
-                        <EyeOff size={16} className="text-gray-500" />
-                      ) : (
-                        <Eye size={16} className="text-gray-500" />
-                      )}
+                      {visibleTokens[token.id]
+                        ? <EyeOff size={16} className="text-gray-500" />
+                        : <Eye size={16} className="text-gray-500" />
+                      }
                     </button>
                   </div>
                   <div className="font-mono text-sm break-all">
-                    {visibleTokens[token.id] ? (
-                      <span className="text-gray-800">{token.derivToken}</span>
-                    ) : (
-                      <span className="text-gray-400 select-none">
-                        ••••••••••••••••••••••••••••••
-                      </span>
-                    )}
+                    {visibleTokens[token.id]
+                      ? <span className="text-gray-800">{token.derivToken}</span>
+                      : <span className="text-gray-400 select-none">••••••••••••••••••••••••••••••</span>
+                    }
                   </div>
                 </div>
 
-                {/* Admin Notes */}
                 {token.tokenNotes && (
                   <div className="bg-blue-50 rounded-lg p-3">
                     <p className="text-xs text-blue-600 font-medium mb-1">Admin Note</p>
@@ -319,15 +314,14 @@ const TradingMonitor = () => {
                   </div>
                 )}
 
-                {/* Assigned Date */}
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Calendar size={12} />
                   <span>Assigned: {formatDate(token.tokenAssignedAt)}</span>
                 </div>
 
-                {/* Action Button */}
+                {/* ── Fixed button: no window.open, no URL token ── */}
                 <button
-                  onClick={() => handleViewAccount(token.derivToken, token.investmentReference)}
+                  onClick={() => handleViewAccount(token)}
                   className="w-full flex items-center justify-center gap-2 bg-[#ff444f] text-white py-3 rounded-xl hover:bg-[#d43b44] transition-colors font-medium"
                 >
                   <ExternalLink size={16} />

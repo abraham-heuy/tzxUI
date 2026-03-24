@@ -109,6 +109,24 @@ export interface DerivTokenResponse {
   };
 }
 
+export interface DerivAccountData {
+  account: {
+    loginid: string;
+    email: string;
+    currency: string;
+    balance: number;
+    landing_company: string;
+  };
+  transactions: Array<{
+    transaction_id: string;
+    transaction_time: number;
+    action_type: string;
+    amount: number;
+    balance_after: number;
+    currency: string;
+  }>;
+}
+
 export const userService = {
   /**
    * Create a new transaction (for logged-in users)
@@ -198,7 +216,20 @@ export const userService = {
    * Get all tokens assigned to the user
    */
   getMyTokens: async (): Promise<{ success: boolean; data: DerivToken[] }> => {
-    const response = await api.get('/other/transanctions/tokens');
+    const response = await api.get('/other/tokens/my');
+    return response.data;
+  },
+
+  /**
+   * Get Deriv account data through backend proxy
+   * This fetches the user's trading account balance and transaction history
+   */
+  getDerivAccountData: async (token: string, limit: number = 10): Promise<{ 
+    success: boolean; 
+    data?: DerivAccountData;
+    error?: string;
+  }> => {
+    const response = await api.post('/other/deriv/account', { token, limit });
     return response.data;
   },
 };
