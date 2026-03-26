@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, DollarSign, Clock, Zap, Users2, Crown } from 'lucide-react';
-import { pools } from '../../data/pool';
+import { Check, DollarSign, Clock, Zap, Users2, Crown, AlertCircle, Loader2 } from 'lucide-react';
+import { getPools, type Pool } from '../../data/pool';
 
 interface PoolSelectionProps {
   formData: any;
@@ -25,7 +26,28 @@ const PoolSelection = ({
   exchangeRate = 130,
   loadingExchange = false
 }: PoolSelectionProps) => {
-  
+  const [pools, setPools] = useState<Pool[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadPools();
+  }, []);
+
+  const loadPools = async () => {
+    try {
+      setLoading(true);
+      const dynamicPools = await getPools();
+      setPools(dynamicPools);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading pools:', err);
+      setError('Failed to load investment pools');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getReturnPeriodIcon = (period: string) => {
     if (period === '3 days') return <Zap size={14} className="text-yellow-500" />;
     if (period === 'Any time') return <Zap size={14} className="text-purple-500" />;
@@ -44,6 +66,37 @@ const PoolSelection = ({
   };
 
   const formatUSD = (amount: number) => `$${amount}`;
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex justify-center items-center py-12"
+      >
+        <Loader2 className="w-8 h-8 text-[#ff444f] animate-spin" />
+      </motion.div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="bg-red-50 border border-red-200 rounded-lg p-4 text-center"
+      >
+        <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={loadPools}
+          className="mt-2 text-sm text-[#ff444f] hover:underline"
+        >
+          Try Again
+        </button>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -74,17 +127,22 @@ const PoolSelection = ({
           const PoolIcon = pool.icon;
           const isSelected = formData.selectedPool === pool.id;
           const kesAmount = Math.round(pool.usdAmount * exchangeRate);
-          const showSlotInfo = pool.slotsRemaining !== undefined && pool.slotsRemaining > 0;
+          const showSlotInfo = pool.slotsRemaining !== undefined && pool.slotsRemaining > 0 && pool.totalSlots > 0;
           const isExclusive = pool.name === 'Growth Pool';
+          const isUnlimited = pool.slotsRemaining === -1;
+          const isFull = !pool.isAvailable && !isUnlimited && pool.slotsRemaining === 0;
           
           return (
             <button
               key={pool.id}
-              onClick={() => onPoolSelect(pool.id)}
+              onClick={() => !isFull && onPoolSelect(pool.id)}
+              disabled={isFull}
               className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
-                isSelected 
-                  ? 'border-[#ff444f] bg-[#ff444f]/5' 
-                  : 'border-gray-200 hover:border-gray-300'
+                isFull 
+                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                  : isSelected 
+                    ? 'border-[#ff444f] bg-[#ff444f]/5' 
+                    : 'border-gray-200 hover:border-gray-300'
               }`}
             >
               <div className="flex items-start gap-4">
@@ -119,6 +177,22 @@ const PoolSelection = ({
                           </span>
                         </div>
                       )}
+                      {isUnlimited && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 bg-green-100 rounded-full">
+                          <Users2 size={10} className="text-green-600" />
+                          <span className="text-xs font-medium text-green-600">
+                            Unlimited slots
+                          </span>
+                        </div>
+                      )}
+                      {isFull && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 rounded-full">
+                          <AlertCircle size={10} className="text-red-600" />
+                          <span className="text-xs font-medium text-red-600">
+                            Full
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{pool.description}</p>
@@ -140,7 +214,7 @@ const PoolSelection = ({
                   {/* Details Row */}
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                      Profit: {pool.profit}%
+                      Profit: {pool.profit}% of the profit
                     </span>
                     <span className={`${getRiskColor(pool.risk)} px-2 py-0.5 rounded-full`}>
                       Risk: {pool.risk}

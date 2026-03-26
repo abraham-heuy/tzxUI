@@ -1,11 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
-  Shield, 
   TrendingUp, 
-  Users, 
   X,
   CheckCircle,
   AlertCircle,
@@ -16,11 +14,12 @@ import {
   DollarSign,
   Zap,
   ArrowRight,
-  Crown,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import CTA from '../components/sections/CTA';
+import { getPools } from '../data/pool';
 
 // Import background image
 import poolsBg from '../assets/pool.jpg';
@@ -91,7 +90,7 @@ const PoolModal = ({ pool, isOpen, onClose }: { pool: any; isOpen: boolean; onCl
               <div className="bg-gray-50 p-3 rounded-xl text-center">
                 <TrendingUp className="w-5 h-5 text-[#ff444f] mx-auto mb-1" />
                 <div className="text-xs text-gray-500">Profit</div>
-                <div className="font-bold text-green-600 text-sm">{pool.profit}%</div>
+                <div className="font-bold text-green-600 text-sm">{pool.profit}% of profit</div>
               </div>
               <div className="bg-gray-50 p-3 rounded-xl text-center">
                 <Clock className="w-5 h-5 text-[#ff444f] mx-auto mb-1" />
@@ -162,7 +161,7 @@ const PoolModal = ({ pool, isOpen, onClose }: { pool: any; isOpen: boolean; onCl
                   <p className="text-blue-700 text-xs mt-1">
                     <strong>50-50 Refund:</strong> If the trading account balance goes to zero, you receive 50% of your investment back.
                     <br />
-                    <strong>Early Withdrawal:</strong> If you cash out before the return period ends, you get your full invested amount back (no profit).
+                    <strong>Early Withdrawal:</strong> If you cash out before the return period ends, you get your full invested amount back (no profit will be paid).
                   </p>
                 </div>
               </div>
@@ -174,7 +173,7 @@ const PoolModal = ({ pool, isOpen, onClose }: { pool: any; isOpen: boolean; onCl
                 <div>
                   <p className="text-amber-800 font-medium text-sm">Risk Disclosure</p>
                   <p className="text-amber-700 text-xs mt-1">
-                    All pools offer 55% profit with varying risk levels. {pool.risk} risk investments carry 
+                    All pools offer {pool.profit}% of profit with varying risk levels. {pool.risk} risk investments carry 
                     {pool.risk === 'Low' ? ' minimal' : pool.risk === 'Low-Medium' ? ' low to moderate' : 
                       pool.risk === 'Medium' ? ' moderate' : pool.risk === 'Medium-High' ? ' moderate to high' : ' significant'} volatility. 
                     Past performance doesn't guarantee future results. Only invest what you can afford to lose.
@@ -199,185 +198,207 @@ const PoolsPage = () => {
   const navigate = useNavigate();
   const [selectedPool, setSelectedPool] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [pools, setPools] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const pools = [
-    {
-      name: 'Starter Pool',
-      tagline: 'Begin Your Journey',
-      icon: Shield,
-      usdAmount: '$20',
-      kesAmount: 'KES 2,600',
-      target: 1000,
-      slotsRemaining: 10,
-      totalSlots: 10,
-      profit: 55,
-      risk: 'Low',
-      returnPeriodDisplay: '7 days',
-      color: 'from-green-500 to-emerald-600',
-      detailedDescription: 'Perfect for beginners. 10 slots available with a target of $1,000. Earn 55% profit after 7 days. This pool is designed for those starting their investment journey with minimal risk.',
-      howItWorks: [
-        'Invest $20 (KES equivalent) to join the pool',
-        'Funds are pooled to reach the $1,000 target',
-        'Professional traders manage the investment',
-        'After 7 days, 55% profit is distributed',
-        'Returns are sent to your wallet automatically'
-      ],
-      features: [
-        '10 slots available',
-        '$1,000 pool target',
-        '55% profit after 7 days',
-        'Low risk strategy',
-        'Automatic profit distribution',
-        'Beginner friendly'
-      ],
-      suitableFor: [
-        'First-time investors',
-        'Low risk tolerance',
-        'Short-term investment',
-        'Learning the process'
-      ]
-    },
-    {
-      name: 'Basic Pool',
-      tagline: 'Steady Growth',
-      icon: Shield,
-      usdAmount: '$50',
-      kesAmount: 'KES 6,500',
-      target: 2500,
-      slotsRemaining: 6,
-      totalSlots: 6,
-      profit: 55,
-      risk: 'Low-Medium',
-      returnPeriodDisplay: '7 days',
-      color: 'from-teal-500 to-green-600',
-      detailedDescription: '6 slots available with a target of $2,500. Earn 55% profit after 7 days. A balanced approach for steady growth with slightly higher returns potential.',
-      howItWorks: [
-        'Invest $50 (KES equivalent) to join the pool',
-        'Funds are pooled to reach the $2,500 target',
-        'Professional traders execute balanced strategies',
-        'After 7 days, 55% profit is distributed',
-        'Returns are credited to your account'
-      ],
-      features: [
-        '6 slots available',
-        '$2,500 pool target',
-        '55% profit after 7 days',
-        'Balanced strategy',
-        'Moderate risk management',
-        'Steady returns'
-      ],
-      suitableFor: [
-        'Intermediate investors',
-        'Moderate risk tolerance',
-        'Steady wealth building',
-        'Short to medium term'
-      ]
-    },
-    {
-      name: 'Growth Pool',
-      tagline: 'Exclusive 1-Person Pool',
-      icon: Crown,
-      usdAmount: '$100',
-      kesAmount: 'KES 13,000',
-      target: 800,
-      slotsRemaining: 1,
-      totalSlots: 1,
-      profit: 55,
-      risk: 'Medium',
-      returnPeriodDisplay: '3 days',
-      color: 'from-blue-500 to-indigo-600',
-      detailedDescription: 'EXCLUSIVE: This is a 1-person pool. Target of $800 with 55% profit after just 3 days. Fast returns for serious investors ready to go all in.',
-      howItWorks: [
-        'Single investor only - claim this exclusive spot',
-        'Full $100 investment goes toward the $800 target',
-        'Faster 3-day return period',
-        'Aggressive but calculated strategies',
-        '55% profit paid directly after completion'
-      ],
-      features: [
-        '1 person only - exclusive access',
-        '$800 pool target',
-        '55% profit after 3 days',
-        'Fast returns',
-        'Priority management',
-        'Exclusive opportunity'
-      ],
-      suitableFor: [
-        'Serious investors',
-        'Medium risk tolerance',
-        'Fast returns seeker',
-        'Exclusive opportunities'
-      ]
-    },
-    {
-      name: 'Premium Pool',
-      tagline: 'Flexible & Daily',
-      icon: TrendingUp,
-      usdAmount: '$300',
-      kesAmount: 'KES 39,000',
-      target: 0,
-      profit: 55,
-      risk: 'Medium-High',
-      returnPeriodDisplay: 'Any time (Daily)',
-      color: 'from-purple-500 to-pink-600',
-      detailedDescription: 'Custom target pool with daily withdrawal capability. Set your own target and withdraw any profit amount daily. 55% profit on your investment.',
-      howItWorks: [
-        'Invest $300 and set your custom target',
-        'Traders work to achieve 55% profit',
-        'Withdraw any profit amount daily',
-        'Flexible investment timeline',
-        'Full control over your returns'
-      ],
-      features: [
-        'Custom target amount',
-        'Daily withdrawals available',
-        '55% profit guaranteed',
-        'Flexible timeline',
-        'Full profit control',
-        'Active management'
-      ],
-      suitableFor: [
-        'Active investors',
-        'Daily income seekers',
-        'Flexible goals',
-        'Medium-high risk tolerance'
-      ]
-    },
-    {
-      name: 'Elite Pool',
-      tagline: 'Maximum Flexibility',
-      icon: Users,
-      usdAmount: '$750',
-      kesAmount: 'KES 97,500',
-      target: 0,
-      profit: 55,
-      risk: 'High',
-      returnPeriodDisplay: 'Any time (Instant)',
-      color: 'from-amber-500 to-red-600',
-      detailedDescription: 'Premium pool for serious investors. Set your own target and withdraw any profit instantly at any time. Maximum flexibility with 55% profit potential.',
-      howItWorks: [
-        'Invest $750 with custom target',
-        'Advanced trading strategies for maximum returns',
-        'Instant withdrawal of any profit anytime',
-        'No lock-in periods',
-        'Full liquidity and control'
-      ],
-      features: [
-        'Custom target amount',
-        'Instant withdrawals anytime',
-        '55% profit potential',
-        'No lock-in period',
-        'Maximum flexibility',
-        'VIP support included'
-      ],
-      suitableFor: [
-        'Experienced investors',
-        'High risk tolerance',
-        'Maximum flexibility',
-        'Serious capital allocation'
-      ]
+  useEffect(() => {
+    loadPools();
+  }, []);
+
+  const loadPools = async () => {
+    try {
+      setLoading(true);
+      const dynamicPools = await getPools();
+      
+      // Map dynamic pool data to the format expected by the component
+      const formattedPools = dynamicPools.map(pool => ({
+        name: pool.name,
+        tagline: getTagline(pool.name),
+        icon: pool.icon,
+        usdAmount: `$${pool.usdAmount}`,
+        kesAmount: `KES ${Math.round(pool.usdAmount * 130).toLocaleString()}`,
+        target: pool.target,
+        slotsRemaining: pool.slotsRemaining,
+        totalSlots: pool.totalSlots,
+        profit: pool.profit,
+        risk: pool.risk,
+        returnPeriodDisplay: pool.returnPeriodDisplay,
+        color: getPoolColor(pool.name),
+        detailedDescription: getDetailedDescription(pool),
+        howItWorks: getHowItWorks(pool.name),
+        features: getFeatures(pool),
+        suitableFor: getSuitableFor(pool.name)
+      }));
+      
+      setPools(formattedPools);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading pools:', err);
+      setError('Failed to load pools. Please refresh the page.');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const getTagline = (name: string): string => {
+    switch(name) {
+      case 'Starter Pool': return 'Begin Your Journey';
+      case 'Basic Pool': return 'Steady Growth';
+      case 'Growth Pool': return 'Exclusive 1-Person Pool';
+      case 'Premium Pool': return 'Flexible & Daily';
+      case 'Elite Pool': return 'Maximum Flexibility';
+      default: return 'Investment Pool';
+    }
+  };
+
+  const getPoolColor = (name: string): string => {
+    switch(name) {
+      case 'Starter Pool': return 'from-green-500 to-emerald-600';
+      case 'Basic Pool': return 'from-teal-500 to-green-600';
+      case 'Growth Pool': return 'from-blue-500 to-indigo-600';
+      case 'Premium Pool': return 'from-purple-500 to-pink-600';
+      case 'Elite Pool': return 'from-amber-500 to-red-600';
+      default: return 'from-gray-500 to-gray-600';
+    }
+  };
+
+  const getDetailedDescription = (pool: any): string => {
+    const profitText = `${pool.profit}% of profit`;
+    
+    switch(pool.name) {
+      case 'Starter Pool':
+        return `Perfect for beginners. ${pool.slotsRemaining > 0 ? `${pool.slotsRemaining} slots available` : 'Currently full'} with a target of $${pool.target.toLocaleString()}. Earn ${profitText} after 7 days. This pool is designed for those starting their investment journey with minimal risk.`;
+      case 'Basic Pool':
+        return `${pool.slotsRemaining > 0 ? `${pool.slotsRemaining} slots available` : 'Currently full'} with a target of $${pool.target.toLocaleString()}. Earn ${profitText} after 7 days. A balanced approach for steady growth with slightly higher returns potential.`;
+      case 'Growth Pool':
+        return `EXCLUSIVE: This is a 1-person pool. Target of $${pool.target.toLocaleString()} with ${profitText} after just 3 days. Fast returns for serious investors ready to go all in.`;
+      case 'Premium Pool':
+        return `Custom target pool with daily withdrawal capability. Set your own target and withdraw any profit amount daily. ${profitText} on your investment.`;
+      case 'Elite Pool':
+        return `Premium pool for serious investors. Set your own target and withdraw any profit instantly at any time. Maximum flexibility with ${profitText} potential.`;
+      default:
+        return pool.description;
+    }
+  };
+
+  const getHowItWorks = (name: string): string[] => {
+    switch(name) {
+      case 'Starter Pool':
+        return [
+          'Invest $20 (KES equivalent) to join the pool',
+          'Funds are pooled to reach the $1,000 target',
+          'Professional traders manage the investment',
+          'After 7 days, 55% of profit is distributed',
+          'Returns are sent to your wallet automatically'
+        ];
+      case 'Basic Pool':
+        return [
+          'Invest $50 (KES equivalent) to join the pool',
+          'Funds are pooled to reach the $2,500 target',
+          'Professional traders execute balanced strategies',
+          'After 7 days, 55% of profit is distributed',
+          'Returns are credited to your account'
+        ];
+      case 'Growth Pool':
+        return [
+          'Single investor only - claim this exclusive spot',
+          'Full $100 investment goes toward the $800 target',
+          'Faster 3-day return period',
+          'Aggressive but calculated strategies',
+          '55% of profit paid directly after completion'
+        ];
+      case 'Premium Pool':
+        return [
+          'Invest $300 and set your custom target',
+          'Traders work to achieve 55% of profit',
+          'Withdraw any profit amount daily',
+          'Flexible investment timeline',
+          'Full control over your returns'
+        ];
+      case 'Elite Pool':
+        return [
+          'Invest $750 with custom target',
+          'Advanced trading strategies for maximum returns',
+          'Instant withdrawal of any profit anytime',
+          'No lock-in periods',
+          'Full liquidity and control'
+        ];
+      default:
+        return ['Investment process varies by pool'];
+    }
+  };
+
+  const getFeatures = (pool: any): string[] => {
+    const profitText = `${pool.profit}% of profit`;
+    
+    switch(pool.name) {
+      case 'Starter Pool':
+        return [
+          `${pool.totalSlots} slots total`,
+          `$${pool.target.toLocaleString()} pool target`,
+          `${profitText} after 7 days`,
+          'Low risk strategy',
+          'Automatic profit distribution',
+          'Beginner friendly'
+        ];
+      case 'Basic Pool':
+        return [
+          `${pool.totalSlots} slots total`,
+          `$${pool.target.toLocaleString()} pool target`,
+          `${profitText} after 7 days`,
+          'Balanced strategy',
+          'Moderate risk management',
+          'Steady returns'
+        ];
+      case 'Growth Pool':
+        return [
+          '1 person only - exclusive access',
+          `$${pool.target.toLocaleString()} pool target`,
+          `${profitText} after 3 days`,
+          'Fast returns',
+          'Priority management',
+          'Exclusive opportunity'
+        ];
+      case 'Premium Pool':
+        return [
+          'Custom target amount',
+          'Daily withdrawals available',
+          `${profitText} guaranteed`,
+          'Flexible timeline',
+          'Full profit control',
+          'Active management'
+        ];
+      case 'Elite Pool':
+        return [
+          'Custom target amount',
+          'Instant withdrawals anytime',
+          `${profitText} potential`,
+          'No lock-in period',
+          'Maximum flexibility',
+          'VIP support included'
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const getSuitableFor = (name: string): string[] => {
+    switch(name) {
+      case 'Starter Pool':
+        return ['First-time investors', 'Low risk tolerance', 'Short-term investment', 'Learning the process'];
+      case 'Basic Pool':
+        return ['Intermediate investors', 'Moderate risk tolerance', 'Steady wealth building', 'Short to medium term'];
+      case 'Growth Pool':
+        return ['Serious investors', 'Medium risk tolerance', 'Fast returns seeker', 'Exclusive opportunities'];
+      case 'Premium Pool':
+        return ['Active investors', 'Daily income seekers', 'Flexible goals', 'Medium-high risk tolerance'];
+      case 'Elite Pool':
+        return ['Experienced investors', 'High risk tolerance', 'Maximum flexibility', 'Serious capital allocation'];
+      default:
+        return [];
+    }
+  };
 
   const openModal = (pool: any) => {
     setSelectedPool(pool);
@@ -388,6 +409,34 @@ const PoolsPage = () => {
     setModalOpen(false);
     setTimeout(() => setSelectedPool(null), 300);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#ff444f] animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading investment pools...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600 mb-2">{error}</p>
+          <button
+            onClick={loadPools}
+            className="px-4 py-2 bg-[#ff444f] text-white rounded-lg hover:bg-[#d43b44]"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white font-['Inter,_sans-serif']">
@@ -430,7 +479,7 @@ const PoolsPage = () => {
                 Investment <span className="text-[#ff444f]">Pools</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-200 mb-4 md:mb-6 px-4">
-                All pools offer <span className="text-[#ff444f] font-bold">55% profit</span> - Choose your investment
+                All pools offer <span className="text-[#ff444f] font-bold">55% of the profit</span> - Choose your investment
               </p>
               <div className="flex justify-center gap-2">
                 <span className="w-12 md:w-16 h-1 bg-[#ff444f] rounded-full"></span>
@@ -452,16 +501,16 @@ const PoolsPage = () => {
                 Understanding Our <span className="text-[#ff444f]">Pool Structure</span>
               </h2>
               <p className="text-base md:text-lg text-gray-600 mb-4 px-4">
-                Each investment pool offers 55% profit with varying return periods. Starter and Basic pools take 7 days, 
+                Each investment pool offers 55% of the profit with varying return periods. Starter and Basic pools take 7 days, 
                 Growth pool takes 3 days, while Premium and Elite pools offer daily or instant withdrawals.
               </p>
               <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg text-left mt-6 md:mt-8 mx-4">
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-green-800 font-medium text-sm md:text-base">55% Profit Across All Pools</p>
+                    <p className="text-green-800 font-medium text-sm md:text-base">55% of the Profit Across All Pools</p>
                     <p className="text-green-700 text-xs md:text-sm">
-                      Every pool guarantees 55% profit. Choose based on your preferred return period and investment amount.
+                      Every pool guarantees 55% of the profit. Choose based on your preferred return period and investment amount.
                     </p>
                   </div>
                 </div>
@@ -512,7 +561,7 @@ const PoolsPage = () => {
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-gray-500">Profit</span>
-                        <span className="font-semibold text-green-600">{pool.profit}%</span>
+                        <span className="font-semibold text-green-600">{pool.profit}% of profit</span>
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-gray-500">Return Period</span>

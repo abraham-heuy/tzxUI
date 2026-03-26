@@ -9,7 +9,8 @@ import {
   ChevronRight,
   X,
   Mail,
-  Eye
+  Eye,
+  BriefcaseBusiness
 } from 'lucide-react';
 import { useUser } from '../../../hooks/useUser';
 
@@ -26,6 +27,7 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
     { name: 'Transactions', icon: CreditCard, path: '/admin/transactions' },
+    {name: 'Slot Manager', icon: BriefcaseBusiness, path:'/admin/slot-manager'},
     { name: 'Support Tickets', icon: Ticket, path: '/admin/tickets' },
     { name: 'Contacts', icon: Mail, path: '/admin/contact' }, 
      { name: 'Deriv Tokens', icon: Eye, path: '/admin/deriv-tokens' },

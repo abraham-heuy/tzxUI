@@ -1,4 +1,7 @@
+// src/data/pool.ts
+
 import { Shield, TrendingUp, Users, Crown } from 'lucide-react';
+import poolSlotService from '../services/poolSlotService';
 
 export interface Pool {
   id: string;
@@ -15,20 +18,20 @@ export interface Pool {
   color: string;
   fee: number;
   risk: string;
+  isAvailable?: boolean;
 }
 
-export const pools: Pool[] = [
+// Base static pool configuration (without dynamic slot data)
+const basePools: Omit<Pool, 'slotsRemaining' | 'totalSlots' | 'isAvailable'>[] = [
   {
     id: 'starter',
     name: 'Starter Pool',
     usdAmount: 20,
     target: 1000,
-    slotsRemaining: 10,
-    totalSlots: 10,
     profit: 55,
     returnPeriod: '7 days',
     returnPeriodDisplay: '7 days',
-    description: '10 slots available. Target: $1,000 with 55% profit.',
+    description: 'Pool with target: $1,000. 55% profit after 7 days.',
     icon: Shield,
     color: 'green',
     fee: 0.02,
@@ -39,12 +42,10 @@ export const pools: Pool[] = [
     name: 'Basic Pool',
     usdAmount: 50,
     target: 2500,
-    slotsRemaining: 6,
-    totalSlots: 6,
     profit: 55,
     returnPeriod: '7 days',
     returnPeriodDisplay: '7 days',
-    description: '6 slots available. Target: $2,500 with 55% profit.',
+    description: 'Pool with target: $2,500. 55% profit after 7 days.',
     icon: Shield,
     color: 'teal',
     fee: 0.025,
@@ -55,8 +56,6 @@ export const pools: Pool[] = [
     name: 'Growth Pool',
     usdAmount: 100,
     target: 800,
-    slotsRemaining: 1,
-    totalSlots: 1,
     profit: 55,
     returnPeriod: '3 days',
     returnPeriodDisplay: '3 days',
@@ -71,8 +70,6 @@ export const pools: Pool[] = [
     name: 'Premium Pool',
     usdAmount: 300,
     target: 0,
-    slotsRemaining: 0,
-    totalSlots: 0,
     profit: 55,
     returnPeriod: 'Any time',
     returnPeriodDisplay: 'Any time (Daily)',
@@ -87,8 +84,6 @@ export const pools: Pool[] = [
     name: 'Elite Pool',
     usdAmount: 750,
     target: 0,
-    slotsRemaining: 0,
-    totalSlots: 0,
     profit: 55,
     returnPeriod: 'Any time',
     returnPeriodDisplay: 'Any time (Instant)',
@@ -99,3 +94,160 @@ export const pools: Pool[] = [
     risk: 'High'
   }
 ];
+
+// Cache for dynamic pools data
+let cachedPools: Pool[] | null = null;
+let lastFetchTime: number = 0;
+const CACHE_DURATION = 30000; // 30 seconds cache
+
+/**
+ * Fetch dynamic slot data from backend and merge with static pool config
+ */
+async function fetchDynamicPools(): Promise<Pool[]> {
+  try {
+    const slotStatuses = await poolSlotService.getPoolStatuses();
+    
+    return basePools.map(basePool => {
+      const slotData = slotStatuses.find(s => s.poolName === basePool.name);
+      
+      // Handle Premium and Elite (unlimited slots)
+      if (basePool.name === 'Premium Pool' || basePool.name === 'Elite Pool') {
+        return {
+          ...basePool,
+          slotsRemaining: -1,
+          totalSlots: -1,
+          isAvailable: true,
+          description: `${basePool.description} Unlimited slots available.`
+        };
+      }
+      
+      // Pool has slot tracking from database
+      if (slotData && slotData.totalSlots !== 'Unlimited') {
+        const availableSlots = typeof slotData.availableSlots === 'number' ? slotData.availableSlots : 0;
+        const totalSlots = typeof slotData.totalSlots === 'number' ? slotData.totalSlots : 0;
+        
+        return {
+          ...basePool,
+          slotsRemaining: availableSlots,
+          totalSlots: totalSlots,
+          isAvailable: availableSlots > 0,
+          description: `${basePool.description} ${availableSlots}/${totalSlots} slots remaining.`
+        };
+      }
+      
+      // Pool not configured yet - fallback
+      return {
+        ...basePool,
+        slotsRemaining: 0,
+        totalSlots: 0,
+        isAvailable: false,
+        description: `${basePool.description} Currently full. Check back later for available slots.`
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching dynamic pool data:', error);
+    // Return fallback static data
+    return getFallbackPools();
+  }
+}
+
+/**
+ * Get fallback pools when API fails
+ */
+function getFallbackPools(): Pool[] {
+  return basePools.map(basePool => ({
+    ...basePool,
+    slotsRemaining: basePool.id === 'starter' ? 10 : 
+                    basePool.id === 'basic' ? 6 : 
+                    basePool.id === 'growth' ? 1 : 0,
+    totalSlots: basePool.id === 'starter' ? 10 : 
+                basePool.id === 'basic' ? 6 : 
+                basePool.id === 'growth' ? 1 : 0,
+    isAvailable: basePool.id !== 'premium' && basePool.id !== 'elite',
+    description: basePool.id === 'starter' ? '10 slots available. Target: $1,000 with 55% profit.' :
+                  basePool.id === 'basic' ? '6 slots available. Target: $2,500 with 55% profit.' :
+                  basePool.id === 'growth' ? 'EXCLUSIVE: 1 person pool. Target: $800 with 55% profit.' :
+                  basePool.description
+  }));
+}
+
+/**
+ * Get pools with dynamic slot data (with caching)
+ */
+export async function getPools(): Promise<Pool[]> {
+  const now = Date.now();
+  
+  // Return cached data if still valid
+  if (cachedPools && (now - lastFetchTime) < CACHE_DURATION) {
+    return cachedPools;
+  }
+  
+  // Fetch fresh data
+  cachedPools = await fetchDynamicPools();
+  lastFetchTime = now;
+  return cachedPools;
+}
+
+/**
+ * Get a single pool by ID with dynamic data
+ */
+export async function getPoolById(id: string): Promise<Pool | null> {
+  const pools = await getPools();
+  return pools.find(pool => pool.id === id) || null;
+}
+
+/**
+ * Get a single pool by name with dynamic data
+ */
+export async function getPoolByName(name: string): Promise<Pool | null> {
+  const pools = await getPools();
+  return pools.find(pool => pool.name === name) || null;
+}
+
+/**
+ * Get available pools (with slots remaining)
+ */
+export async function getAvailablePools(): Promise<Pool[]> {
+  const pools = await getPools();
+  return pools.filter(pool => {
+    // Premium and Elite are always available
+    if (pool.name === 'Premium Pool' || pool.name === 'Elite Pool') return true;
+    return pool.slotsRemaining > 0;
+  });
+}
+
+/**
+ * Force refresh pool data (bypass cache)
+ */
+export async function refreshPools(): Promise<Pool[]> {
+  cachedPools = await fetchDynamicPools();
+  lastFetchTime = Date.now();
+  return cachedPools;
+}
+
+/**
+ * Sync static pool data with dynamic slots (for components that need sync access)
+ * This maintains backward compatibility with existing imports
+ */
+export let pools: Pool[] = basePools.map(basePool => ({
+  ...basePool,
+  slotsRemaining: basePool.id === 'starter' ? 10 : 
+                  basePool.id === 'basic' ? 6 : 
+                  basePool.id === 'growth' ? 1 : 0,
+  totalSlots: basePool.id === 'starter' ? 10 : 
+              basePool.id === 'basic' ? 6 : 
+              basePool.id === 'growth' ? 1 : 0
+}));
+
+// Initialize pools with dynamic data on module load (non-blocking)
+getPools().then(dynamicPools => {
+  // Update the exported pools array for components that are already using it
+  // This is a reference update - components using the imported `pools` array
+  // will need to be updated to use the async functions instead
+  Object.assign(pools, dynamicPools);
+}).catch(console.error);
+
+// Export a hook for React components
+export const usePools = () => {
+  return { getPools, getPoolById, getPoolByName, getAvailablePools, refreshPools };
+};
