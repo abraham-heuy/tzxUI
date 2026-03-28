@@ -115,7 +115,8 @@ export interface DerivAccountData {
     email: string;
     currency: string;
     balance: number;
-    landing_company: string;
+    landing_company_name: string;  
+    is_virtual: boolean | number;  
   };
   transactions: Array<{
     transaction_id: string;
@@ -124,6 +125,9 @@ export interface DerivAccountData {
     amount: number;
     balance_after: number;
     currency: string;
+    shortcode?: string;
+    longcode?: string;
+    payout?: number;
   }>;
 }
 
