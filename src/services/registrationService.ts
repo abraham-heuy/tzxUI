@@ -56,7 +56,8 @@ export const registrationService = {
   // Step 3: Initiate M-Pesa payment
   initiateMpesaPayment: async (data: MpesaInitiateData) => {
     try {
-      const response = await api.post('/register/mpesa/initiate', data);
+      // ✅ Changed: removed /register prefix since routes are at /api/mpesa/initiate
+      const response = await api.post('/mpesa/initiate', data);
       return response.data;
     } catch (error: any) {
       console.error('M-Pesa initiation failed:', error);
@@ -67,7 +68,8 @@ export const registrationService = {
   // Step 4: Verify M-Pesa transaction
   verifyTransaction: async (data: VerifyTransactionData) => {
     try {
-      const response = await api.post('/register/mpesa/verify', data);
+      // ✅ Changed: removed /register prefix
+      const response = await api.post('/mpesa/verify', data);
       return response.data;
     } catch (error: any) {
       console.error('Transaction verification failed:', error);
@@ -78,6 +80,7 @@ export const registrationService = {
   // Step 5: Complete registration
   completeRegistration: async (data: RegistrationData) => {
     try {
+      // ✅ Kept as /register (since route is POST /api/register)
       const response = await api.post('/register', data);
       return response.data;
     } catch (error: any) {
@@ -89,7 +92,8 @@ export const registrationService = {
   // Check registration status
   getRegistrationStatus: async (reference: string) => {
     try {
-      const response = await api.get(`/register/status/${reference}`);
+      // ✅ Changed: removed /register prefix, now /status/:reference
+      const response = await api.get(`/status/${reference}`);
       return response.data;
     } catch (error: any) {
       console.error('Status check failed:', error);
