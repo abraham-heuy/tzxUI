@@ -1,6 +1,6 @@
 // src/data/pool.ts
 
-import { Shield, TrendingUp, Users, Crown } from 'lucide-react';
+import { Shield, TrendingUp, Users, Crown, TestTube } from 'lucide-react';
 import poolSlotService from '../services/poolSlotService';
 
 export interface Pool {
@@ -23,6 +23,20 @@ export interface Pool {
 
 // Base static pool configuration (without dynamic slot data)
 const basePools: Omit<Pool, 'slotsRemaining' | 'totalSlots' | 'isAvailable'>[] = [
+  {
+    id: 'test',
+    name: 'Test Pool',
+    usdAmount: 0.0077, // ~1 KES at 130 KES/USD
+    target: 1, // $1 target (about 130 KES)
+    profit: 55,
+    returnPeriod: '1 day',
+    returnPeriodDisplay: '1 day',
+    description: 'TEST POOL: Small amount for testing payments. 55% profit after 1 day.',
+    icon: TestTube,
+    color: 'gray',
+    fee: 0.01,
+    risk: 'Very Low'
+  },
   {
     id: 'starter',
     name: 'Starter Pool',
@@ -110,6 +124,17 @@ async function fetchDynamicPools(): Promise<Pool[]> {
     return basePools.map(basePool => {
       const slotData = slotStatuses.find(s => s.poolName === basePool.name);
       
+      // Handle Test Pool - unlimited slots for testing
+      if (basePool.name === 'Test Pool') {
+        return {
+          ...basePool,
+          slotsRemaining: 10,
+          totalSlots: 10,
+          isAvailable: true,
+          description: `TEST POOL: ${basePool.slotsRemaining}/10 slots available. 55% profit after 1 day. Use for testing payments.`
+        };
+      }
+      
       // Handle Premium and Elite (unlimited slots)
       if (basePool.name === 'Premium Pool' || basePool.name === 'Elite Pool') {
         return {
@@ -157,14 +182,17 @@ async function fetchDynamicPools(): Promise<Pool[]> {
 function getFallbackPools(): Pool[] {
   return basePools.map(basePool => ({
     ...basePool,
-    slotsRemaining: basePool.id === 'starter' ? 10 : 
+    slotsRemaining: basePool.id === 'test' ? 10 :
+                    basePool.id === 'starter' ? 10 : 
                     basePool.id === 'basic' ? 6 : 
                     basePool.id === 'growth' ? 1 : 0,
-    totalSlots: basePool.id === 'starter' ? 10 : 
+    totalSlots: basePool.id === 'test' ? 10 :
+                basePool.id === 'starter' ? 10 : 
                 basePool.id === 'basic' ? 6 : 
                 basePool.id === 'growth' ? 1 : 0,
     isAvailable: basePool.id !== 'premium' && basePool.id !== 'elite',
-    description: basePool.id === 'starter' ? '10 slots available. Target: $1,000 with 55% profit.' :
+    description: basePool.id === 'test' ? 'TEST POOL: 10 slots available. 55% profit after 1 day.' :
+                  basePool.id === 'starter' ? '10 slots available. Target: $1,000 with 55% profit.' :
                   basePool.id === 'basic' ? '6 slots available. Target: $2,500 with 55% profit.' :
                   basePool.id === 'growth' ? 'EXCLUSIVE: 1 person pool. Target: $800 with 55% profit.' :
                   basePool.description
@@ -210,8 +238,8 @@ export async function getPoolByName(name: string): Promise<Pool | null> {
 export async function getAvailablePools(): Promise<Pool[]> {
   const pools = await getPools();
   return pools.filter(pool => {
-    // Premium and Elite are always available
-    if (pool.name === 'Premium Pool' || pool.name === 'Elite Pool') return true;
+    // Test, Premium and Elite are always available
+    if (pool.name === 'Test Pool' || pool.name === 'Premium Pool' || pool.name === 'Elite Pool') return true;
     return pool.slotsRemaining > 0;
   });
 }
@@ -231,10 +259,12 @@ export async function refreshPools(): Promise<Pool[]> {
  */
 export let pools: Pool[] = basePools.map(basePool => ({
   ...basePool,
-  slotsRemaining: basePool.id === 'starter' ? 10 : 
+  slotsRemaining: basePool.id === 'test' ? 10 :
+                  basePool.id === 'starter' ? 10 : 
                   basePool.id === 'basic' ? 6 : 
                   basePool.id === 'growth' ? 1 : 0,
-  totalSlots: basePool.id === 'starter' ? 10 : 
+  totalSlots: basePool.id === 'test' ? 10 :
+              basePool.id === 'starter' ? 10 : 
               basePool.id === 'basic' ? 6 : 
               basePool.id === 'growth' ? 1 : 0
 }));
