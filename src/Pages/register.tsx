@@ -99,7 +99,7 @@ const Register = () => {
   // Registration result
   const [registrationResult, setRegistrationResult] = useState<any>(null);
 
-  // Form data state - updated initial investmentAmount to 0
+  // Form data state
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
@@ -108,7 +108,7 @@ const Register = () => {
     password: "",
     confirmPassword: "",
     selectedPool: "",
-    investmentAmount: 0, // Will hold the KES amount
+    investmentAmount: 0,
     mpesaPhone: "",
     mpesaCode: "",
   });
@@ -125,7 +125,6 @@ const Register = () => {
         }
       } catch (error) {
         console.error("Failed to fetch exchange rate:", error);
-        // Use fallback rate
         setExchangeRate(130);
       } finally {
         setLoadingExchange(false);
@@ -137,19 +136,14 @@ const Register = () => {
   // Helper Functions
   const formatAmount = (amount: number) => `KES ${amount.toLocaleString()}`;
 
-  // Calculate KES amount from USD
   const calculateKesAmount = (usdAmount: number): number => {
     return Math.round(usdAmount * exchangeRate);
   };
 
   const selectedPoolData = pools.find((p) => p.id === formData.selectedPool);
-  
-  // Calculate the KES amount for the selected pool
   const kesAmount = selectedPoolData 
     ? calculateKesAmount(selectedPoolData.usdAmount) 
     : 0;
-
-  // No fees - just the investment amount
   const total = kesAmount;
 
   // Handlers
@@ -170,7 +164,7 @@ const Register = () => {
       setFormData((prev) => ({
         ...prev,
         selectedPool: poolId,
-        investmentAmount: kesAmountValue, // Store KES amount
+        investmentAmount: kesAmountValue,
       }));
     }
   };
@@ -231,7 +225,6 @@ const Register = () => {
 
   // API Handlers
   const handleSendPayment = async () => {
-    // Validate phone
     if (!formData.mpesaPhone) {
       setErrors((prev) => ({
         ...prev,
@@ -251,10 +244,9 @@ const Register = () => {
     setApiError(null);
 
     try {
-      // Send the KES amount (total) to M-Pesa
       const response = await registrationService.initiateMpesaPayment({
         phoneNumber: formData.mpesaPhone,
-        amount: Math.floor(total), // Use the KES amount, rounded to whole number
+        amount: Math.floor(total),
         reference: `TZX-${Date.now()}`,
       });
 
@@ -269,7 +261,7 @@ const Register = () => {
     }
   };
 
-  const handleVerifyTransaction = () => {
+  const handleVerifyTransaction = async () => {
     if (!formData.mpesaCode) {
       setErrors((prev) => ({
         ...prev,
@@ -277,7 +269,10 @@ const Register = () => {
       }));
       return;
     }
-    if (!/^[A-Z0-9]{10,12}$/i.test(formData.mpesaCode)) {
+    
+    // Accept both formats: M-Pesa receipt (10-12 chars) and test codes
+    if (!/^[A-Z0-9]{10,12}$/i.test(formData.mpesaCode) && 
+        !formData.mpesaCode.startsWith('TEST-')) {
       setErrors((prev) => ({
         ...prev,
         mpesaCode: "Enter a valid M-Pesa transaction code",
@@ -286,12 +281,29 @@ const Register = () => {
     }
 
     setIsVerifying(true);
+    setApiError(null);
 
-    setTimeout(() => {
+    try {
+      // Actually verify the transaction with backend
+      const response = await registrationService.verifyTransaction({
+        transactionCode: formData.mpesaCode,
+        phoneNumber: formData.mpesaPhone,
+        amount: total
+      });
+
+      if (response.success) {
+        // Transaction verified - move to signature step
+        setCurrentStep(5);
+        setErrors({});
+      } else {
+        setApiError(response.message || 'Transaction verification failed');
+      }
+    } catch (error: any) {
+      console.error('Verification error:', error);
+      setApiError(error.message || 'Failed to verify transaction. Please check your code and try again.');
+    } finally {
       setIsVerifying(false);
-      setCurrentStep(5);
-      setErrors({});
-    }, 1500);
+    }
   };
 
   const handleFinalSubmit = async () => {
@@ -317,7 +329,7 @@ const Register = () => {
           name: selectedPoolData.name,
           fee: selectedPoolData.fee,
         },
-        investmentAmount: kesAmount, // Store the KES amount in the database
+        investmentAmount: kesAmount,
         mpesaPhone: formData.mpesaPhone,
         mpesaTransactionCode: formData.mpesaCode,
         digitalSignature: signature,
@@ -465,9 +477,9 @@ const Register = () => {
                     errors={errors}
                     touched={touched}
                     selectedPoolData={selectedPoolData}
-                    investmentAmount={kesAmount} // Pass KES amount
-                    fee={0} // No fee
-                    total={total} // Total = KES amount
+                    investmentAmount={kesAmount}
+                    fee={0}
+                    total={total}
                     onChange={handleChange}
                     onSendPayment={handleSendPayment}
                     formatAmount={formatAmount}

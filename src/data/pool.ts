@@ -124,14 +124,14 @@ async function fetchDynamicPools(): Promise<Pool[]> {
     return basePools.map(basePool => {
       const slotData = slotStatuses.find(s => s.poolName === basePool.name);
       
-      // Handle Test Pool - unlimited slots for testing
+      // Handle Test Pool - 10 slots for testing (not from database)
       if (basePool.name === 'Test Pool') {
         return {
           ...basePool,
           slotsRemaining: 10,
           totalSlots: 10,
           isAvailable: true,
-          description: `TEST POOL: ${basePool.slotsRemaining}/10 slots available. 55% profit after 1 day. Use for testing payments.`
+          description: `TEST POOL: 10 slots available. 55% profit after 1 day. Use for testing payments.`
         };
       }
       
@@ -180,23 +180,48 @@ async function fetchDynamicPools(): Promise<Pool[]> {
  * Get fallback pools when API fails
  */
 function getFallbackPools(): Pool[] {
-  return basePools.map(basePool => ({
-    ...basePool,
-    slotsRemaining: basePool.id === 'test' ? 10 :
-                    basePool.id === 'starter' ? 10 : 
-                    basePool.id === 'basic' ? 6 : 
-                    basePool.id === 'growth' ? 1 : 0,
-    totalSlots: basePool.id === 'test' ? 10 :
-                basePool.id === 'starter' ? 10 : 
-                basePool.id === 'basic' ? 6 : 
-                basePool.id === 'growth' ? 1 : 0,
-    isAvailable: basePool.id !== 'premium' && basePool.id !== 'elite',
-    description: basePool.id === 'test' ? 'TEST POOL: 10 slots available. 55% profit after 1 day.' :
-                  basePool.id === 'starter' ? '10 slots available. Target: $1,000 with 55% profit.' :
-                  basePool.id === 'basic' ? '6 slots available. Target: $2,500 with 55% profit.' :
-                  basePool.id === 'growth' ? 'EXCLUSIVE: 1 person pool. Target: $800 with 55% profit.' :
-                  basePool.description
-  }));
+  return basePools.map(basePool => {
+    // Set default slots based on pool id
+    let slotsRemaining = 0;
+    let totalSlots = 0;
+    let description = basePool.description;
+    
+    switch(basePool.id) {
+      case 'test':
+        slotsRemaining = 10;
+        totalSlots = 10;
+        description = 'TEST POOL: 10 slots available. 55% profit after 1 day.';
+        break;
+      case 'starter':
+        slotsRemaining = 10;
+        totalSlots = 10;
+        description = `10 slots available. Target: $${basePool.target} with 55% profit.`;
+        break;
+      case 'basic':
+        slotsRemaining = 6;
+        totalSlots = 6;
+        description = `6 slots available. Target: $${basePool.target} with 55% profit.`;
+        break;
+      case 'growth':
+        slotsRemaining = 1;
+        totalSlots = 1;
+        description = `EXCLUSIVE: 1 person pool. Target: $${basePool.target} with 55% profit.`;
+        break;
+      case 'premium':
+      case 'elite':
+        slotsRemaining = -1;
+        totalSlots = -1;
+        break;
+    }
+    
+    return {
+      ...basePool,
+      slotsRemaining,
+      totalSlots,
+      isAvailable: basePool.id !== 'premium' && basePool.id !== 'elite',
+      description
+    };
+  });
 }
 
 /**
@@ -257,17 +282,38 @@ export async function refreshPools(): Promise<Pool[]> {
  * Sync static pool data with dynamic slots (for components that need sync access)
  * This maintains backward compatibility with existing imports
  */
-export let pools: Pool[] = basePools.map(basePool => ({
-  ...basePool,
-  slotsRemaining: basePool.id === 'test' ? 10 :
-                  basePool.id === 'starter' ? 10 : 
-                  basePool.id === 'basic' ? 6 : 
-                  basePool.id === 'growth' ? 1 : 0,
-  totalSlots: basePool.id === 'test' ? 10 :
-              basePool.id === 'starter' ? 10 : 
-              basePool.id === 'basic' ? 6 : 
-              basePool.id === 'growth' ? 1 : 0
-}));
+export let pools: Pool[] = basePools.map(basePool => {
+  let slotsRemaining = 0;
+  let totalSlots = 0;
+  
+  switch(basePool.id) {
+    case 'test':
+      slotsRemaining = 10;
+      totalSlots = 10;
+      break;
+    case 'starter':
+      slotsRemaining = 10;
+      totalSlots = 10;
+      break;
+    case 'basic':
+      slotsRemaining = 6;
+      totalSlots = 6;
+      break;
+    case 'growth':
+      slotsRemaining = 1;
+      totalSlots = 1;
+      break;
+    default:
+      slotsRemaining = 0;
+      totalSlots = 0;
+  }
+  
+  return {
+    ...basePool,
+    slotsRemaining,
+    totalSlots
+  };
+});
 
 // Initialize pools with dynamic data on module load (non-blocking)
 getPools().then(dynamicPools => {

@@ -1,3 +1,5 @@
+// src/services/registrationService.ts
+
 import api from './api';
 
 export interface RegistrationData {
@@ -21,6 +23,12 @@ export interface MpesaInitiateData {
   phoneNumber: string;
   amount: number;
   reference: string;
+}
+
+export interface VerifyTransactionData {
+  transactionCode: string;
+  phoneNumber: string;
+  amount: number;
 }
 
 // Clean error messages for frontend
@@ -51,10 +59,18 @@ export const registrationService = {
       const response = await api.post('/register/mpesa/initiate', data);
       return response.data;
     } catch (error: any) {
-      // Log the full error on backend only (not sent to frontend)
       console.error('M-Pesa initiation failed:', error);
-      
-      // Throw clean error message
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  // Step 4: Verify M-Pesa transaction
+  verifyTransaction: async (data: VerifyTransactionData) => {
+    try {
+      const response = await api.post('/register/mpesa/verify', data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Transaction verification failed:', error);
       throw new Error(getErrorMessage(error));
     }
   },
