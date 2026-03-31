@@ -1,7 +1,7 @@
 // src/components/register/verificationstep.tsx
 
 import { motion } from "framer-motion";
-import { CheckCircle,  AlertCircle, Info, ArrowRight, CreditCard, Receipt } from "lucide-react";
+import { CheckCircle, AlertCircle,  ArrowRight, CreditCard, Receipt, ShoppingBag } from "lucide-react";
 
 interface VerificationStepProps {
   formData: any;
@@ -28,6 +28,9 @@ const VerificationStep = ({
   isVerifying,
   paymentSent,
 }: VerificationStepProps) => {
+  // Generate a reference number for manual payment if not available
+  const manualReference = formData.investmentReference || `TZX-${Date.now()}`;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -70,27 +73,27 @@ const VerificationStep = ({
         </div>
       </div>
 
-      {/* Manual Payment Instructions */}
+      {/* Manual Payment Instructions - Buy Goods & Services */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
         <div className="flex items-start gap-3">
-          <Info size={18} className="text-blue-600 mt-0.5" />
+          <ShoppingBag size={18} className="text-blue-600 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-blue-800 mb-2">
               Didn't receive the payment prompt?
             </p>
             <p className="text-xs text-blue-700 mb-3">
-              You can pay manually using M-Pesa Paybill:
+              You can pay manually using M-Pesa Buy Goods & Services (Till Number):
             </p>
             <div className="bg-white rounded-lg p-3 mb-3">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <p className="text-xs text-gray-500">Paybill Number</p>
-                  <p className="font-mono font-bold text-gray-900">4564891</p>
+                  <p className="text-xs text-gray-500">Till Number (Buy Goods)</p>
+                  <p className="font-mono font-bold text-blue-600 text-lg">5375182</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Account Number</p>
+                  <p className="text-xs text-gray-500">Reference/Account</p>
                   <p className="font-mono font-bold text-gray-900 text-xs break-all">
-                    {formData.investmentReference || `TZX-${Date.now()}`}
+                    {manualReference}
                   </p>
                 </div>
                 <div>
@@ -99,8 +102,19 @@ const VerificationStep = ({
                 </div>
               </div>
             </div>
-            <p className="text-xs text-blue-600">
-              After paying manually, enter the receipt number from your SMS below
+            <div className="bg-white rounded-lg p-3">
+              <p className="text-xs font-semibold text-gray-700 mb-2">How to pay manually:</p>
+              <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+                <li>Open M-Pesa</li>
+                <li>Select <strong className="text-blue-600">Lipa Na M-Pesa</strong></li>
+                <li>Select <strong className="text-blue-600">Buy Goods and Services</strong></li>
+                <li>Enter Till Number: <strong className="font-mono">5375182</strong></li>
+                <li>Enter Amount: <strong>{formatAmount(total)}</strong></li>
+                <li>Enter your M-Pesa PIN and confirm</li>
+              </ol>
+            </div>
+            <p className="text-xs text-blue-600 mt-3">
+              After paying, enter the code from your SMS below to verify your payment.
             </p>
           </div>
         </div>
@@ -109,7 +123,7 @@ const VerificationStep = ({
       {/* Transaction Code Input */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          M-Pesa Transaction Code
+          M-Pesa Transaction Code / Receipt Number
         </label>
         <div className="relative">
           <Receipt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -118,7 +132,7 @@ const VerificationStep = ({
             name="mpesaCode"
             value={formData.mpesaCode}
             onChange={onChange}
-            placeholder="e.g., QAL123456789"
+            placeholder="e.g., QAL123456789 or TEST-123456"
             className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ff444f] ${
               errors.mpesaCode && touched.mpesaCode
                 ? "border-red-500"

@@ -26,7 +26,7 @@ const basePools: Omit<Pool, 'slotsRemaining' | 'totalSlots' | 'isAvailable'>[] =
   {
     id: 'test',
     name: 'Test Pool',
-    usdAmount: 0.0077, // ~1 KES at 130 KES/USD
+    usdAmount: 0.151, // ~1 KES at 130 KES/USD
     target: 1, // $1 target (about 130 KES)
     profit: 55,
     returnPeriod: '1 day',

@@ -14,15 +14,17 @@ import {
   Linkedin,
   Instagram,
   MessageCircle,
-  HeadphonesIcon
+  HeadphonesIcon,
+  AlertCircle
 } from 'lucide-react';
 
 import contactBg from '../assets/contact.jpg';
+import { contactService } from '../services/contactService';
 
 const Contact = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     phone: '',
     subject: '',
@@ -30,30 +32,69 @@ const Contact = () => {
   });
   
   const [emailSubscription, setEmailSubscription] = useState('');
-  const [formStatus, setFormStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (formStatus !== 'idle') setFormStatus('idle');
+    if (errorMessage) setErrorMessage('');
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate form submission
-    setFormStatus('success');
-    setTimeout(() => setFormStatus('idle'), 3000);
     
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
+    // Validate required fields
+    if (!formData.fullName || !formData.email || !formData.subject || !formData.message) {
+      setErrorMessage('Please fill in all required fields');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setErrorMessage('Please enter a valid email address');
+      return;
+    }
+
+    setFormStatus('submitting');
+    setErrorMessage('');
+
+    try {
+      const response = await contactService.submitContact({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        subject: formData.subject,
+        message: formData.message
+      });
+
+      if (response.success) {
+        setFormStatus('success');
+        // Reset form
+        setFormData({
+          fullName: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: ''
+        });
+        setTimeout(() => setFormStatus('idle'), 5000);
+      } else {
+        throw new Error(response.message || 'Failed to send message');
+      }
+    } catch (error: any) {
+      console.error('Contact form error:', error);
+      setFormStatus('error');
+      setErrorMessage(error.message || 'Failed to send message. Please try again later.');
+      setTimeout(() => {
+        if (formStatus === 'error') setFormStatus('idle');
+      }, 5000);
+    }
   };
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -65,34 +106,31 @@ const Contact = () => {
     }
   };
 
-  // Contact information
+  // Contact information - UPDATED
   const contactInfo = [
     {
       icon: Phone,
       title: "Phone",
       details: [
-        "+254 700 123 456",
-        "+254 711 789 012"
+        "0798633983"
       ],
-      action: "Call us anytime",
-      link: "tel:+254700123456"
+      action: "Call us",
+      link: "tel:+254798633983"
     },
     {
       icon: Mail,
       title: "Email",
       details: [
-        "info@tzxtrading.com",
-        "support@tzxtrading.com"
+        "tzxtrading@gmail.com"
       ],
       action: "Email us",
-      link: "mailto:info@tzxtrading.com"
+      link: "mailto:tzxtrading@gmail.com"
     },
     {
       icon: MapPin,
       title: "Office",
       details: [
-        "14th Floor, Delta Tower",
-        "Upper Hill, Nairobi, Kenya"
+        "Nairobi, Kenya"
       ],
       action: "Get directions",
       link: "https://maps.google.com"
@@ -109,7 +147,7 @@ const Contact = () => {
     }
   ];
 
-  // Support channels - FIXED: Store icon components, not JSX
+  // Support channels
   const supportChannels = [
     {
       icon: MessageCircle,
@@ -123,7 +161,8 @@ const Contact = () => {
       name: "WhatsApp",
       description: "Quick support on WhatsApp",
       available: "8am - 8pm",
-      action: "WhatsApp Us"
+      action: "WhatsApp Us",
+      link: "https://wa.me/254798633983"
     }
   ];
 
@@ -237,16 +276,19 @@ const Contact = () => {
                   })}
                 </div>
 
-                {/* Support Channels - FIXED */}
+                {/* Support Channels */}
                 <div className="mb-8">
                   <h3 className="font-semibold text-gray-900 mb-4">Quick Support Channels</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {supportChannels.map((channel, index) => {
                       const IconComponent = channel.icon;
                       return (
-                        <button
+                        <a
                           key={index}
-                          className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:border-[#ff444f] hover:shadow-md transition-all group"
+                          href={channel.link || '#'}
+                          target={channel.link ? '_blank' : undefined}
+                          rel={channel.link ? 'noopener noreferrer' : undefined}
+                          className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:border-[#ff444f] hover:shadow-md transition-all group cursor-pointer"
                         >
                           <div className="w-10 h-10 bg-[#ff444f]/10 rounded-lg flex items-center justify-center group-hover:bg-[#ff444f] transition-colors">
                             <IconComponent className="w-5 h-5 text-[#ff444f] group-hover:text-white" />
@@ -255,7 +297,7 @@ const Contact = () => {
                             <p className="font-medium text-gray-900 text-sm">{channel.name}</p>
                             <p className="text-xs text-gray-500">{channel.available}</p>
                           </div>
-                        </button>
+                        </a>
                       );
                     })}
                   </div>
@@ -289,16 +331,24 @@ const Contact = () => {
                   Send us a <span className="text-[#ff444f]">Message</span>
                 </h3>
 
+                {/* Error Message */}
+                {errorMessage && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                    <AlertCircle size={16} className="text-red-500" />
+                    <p className="text-sm text-red-600">{errorMessage}</p>
+                  </div>
+                )}
+
                 <form onSubmit={handleFormSubmit} className="space-y-4">
-                  {/* Name Field */}
+                  {/* Full Name Field */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Full Name *
                     </label>
                     <input
                       type="text"
-                      name="name"
-                      value={formData.name}
+                      name="fullName"
+                      value={formData.fullName}
                       onChange={handleFormChange}
                       required
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#ff444f] focus:border-transparent transition-all outline-none"
@@ -333,7 +383,7 @@ const Contact = () => {
                       value={formData.phone}
                       onChange={handleFormChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#ff444f] focus:border-transparent transition-all outline-none"
-                      placeholder="+254 700 000 000"
+                      placeholder="0798633983"
                     />
                   </div>
 
@@ -350,11 +400,11 @@ const Contact = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#ff444f] focus:border-transparent transition-all outline-none bg-white"
                     >
                       <option value="">Select a subject</option>
-                      <option value="investment">Investment Inquiry</option>
-                      <option value="support">Customer Support</option>
-                      <option value="partnership">Partnership Opportunity</option>
-                      <option value="feedback">Feedback</option>
-                      <option value="other">Other</option>
+                      <option value="Investment Inquiry">Investment Inquiry</option>
+                      <option value="Customer Support">Customer Support</option>
+                      <option value="Partnership">Partnership Opportunity</option>
+                      <option value="Feedback">Feedback</option>
+                      <option value="Other">Other</option>
                     </select>
                   </div>
 
@@ -377,13 +427,23 @@ const Contact = () => {
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    className="w-full bg-[#ff444f] text-white py-4 rounded-xl hover:bg-[#d43b44] transition-all font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    disabled={formStatus === 'submitting'}
+                    className="w-full bg-[#ff444f] text-white py-4 rounded-xl hover:bg-[#d43b44] transition-all font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    <Send size={18} />
-                    Send Message
+                    {formStatus === 'submitting' ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send size={18} />
+                        Send Message
+                      </>
+                    )}
                   </button>
 
-                  {/* Form Status */}
+                  {/* Form Status - Success */}
                   {formStatus === 'success' && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -456,7 +516,6 @@ const Contact = () => {
             </motion.div>
           </div>
         </section>
-
       </div>
     </div>
   );

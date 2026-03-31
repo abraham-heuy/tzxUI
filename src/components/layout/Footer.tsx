@@ -8,7 +8,7 @@ const Footer = () => {
           {/* Company Info */}
           <div>
             <h3 className="text-2xl font-bold text-[#ff444f] mb-4">
-              Deriv<span className="text-white">Pool</span>
+              TZX<span className="text-white">Trading</span>
             </h3>
             <p className="text-gray-400 mb-4">
               Professional investment pools managed by expert traders
@@ -48,10 +48,10 @@ const Footer = () => {
             <h4 className="font-semibold mb-4 text-white">Contact Us</h4>
             <ul className="space-y-2 text-gray-400">
               <li className="flex items-center gap-2">
-                <Phone size={16} /> +254 700 000 000
+                <Phone size={16} /> 0798633983
               </li>
               <li className="flex items-center gap-2">
-                <Mail size={16} /> info@derivpool.com
+                <Mail size={16} /> tzxtrading@gmail.com
               </li>
               <li className="flex items-center gap-2">
                 <MapPin size={16} /> Nairobi, Kenya
@@ -61,7 +61,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 DerivPool. All rights reserved.</p>
+          <p>&copy; 2026 TZXTrading. All rights reserved.</p>
         </div>
       </div>
     </footer>
