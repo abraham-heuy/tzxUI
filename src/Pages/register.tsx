@@ -88,6 +88,7 @@ const Register = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [paymentSent, setPaymentSent] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
 
   // Signature and terms state
   const [signature, setSignature] = useState("");
@@ -155,6 +156,7 @@ const Register = () => {
     }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError(null);
+    setVerificationMessage(null);
   };
 
   const handlePoolSelect = (poolId: string) => {
@@ -261,6 +263,7 @@ const Register = () => {
     }
   };
 
+  // ✅ Updated verification function - allows users to proceed with code
   const handleVerifyTransaction = async () => {
     if (!formData.mpesaCode) {
       setErrors((prev) => ({
@@ -270,21 +273,22 @@ const Register = () => {
       return;
     }
     
-    // Accept both formats: M-Pesa receipt (10-12 chars) and test codes
+    // Accept M-Pesa receipt format (10-12 chars) and test codes
     if (!/^[A-Z0-9]{10,12}$/i.test(formData.mpesaCode) && 
         !formData.mpesaCode.startsWith('TEST-')) {
       setErrors((prev) => ({
         ...prev,
-        mpesaCode: "Enter a valid M-Pesa transaction code",
+        mpesaCode: "Enter a valid M-Pesa transaction code (e.g., QAL123456789)",
       }));
       return;
     }
 
     setIsVerifying(true);
     setApiError(null);
+    setVerificationMessage(null);
 
     try {
-      // Actually verify the transaction with backend
+      // Try to verify with backend
       const response = await registrationService.verifyTransaction({
         transactionCode: formData.mpesaCode,
         phoneNumber: formData.mpesaPhone,
@@ -292,15 +296,30 @@ const Register = () => {
       });
 
       if (response.success) {
-        // Transaction verified - move to signature step
-        setCurrentStep(5);
-        setErrors({});
+        // Transaction verified in database - move to signature step
+        setVerificationMessage("✅ Payment verified successfully! Proceeding to signature.");
+        setTimeout(() => {
+          setCurrentStep(5);
+          setErrors({});
+        }, 1500);
       } else {
-        setApiError(response.message || 'Transaction verification failed');
+        // Transaction not found in database - still proceed with message
+        setVerificationMessage(
+          "📝 Payment code received. Our admin will verify this payment. You can proceed to complete your registration."
+        );
+        setTimeout(() => {
+          setCurrentStep(5);
+        }, 2000);
       }
     } catch (error: any) {
       console.error('Verification error:', error);
-      setApiError(error.message || 'Failed to verify transaction. Please check your code and try again.');
+      // Even if verification fails, allow user to proceed with admin review
+      setVerificationMessage(
+        "⏳ Payment code recorded. Your payment will be verified by our admin. You may continue with registration."
+      );
+      setTimeout(() => {
+        setCurrentStep(5);
+      }, 2000);
     } finally {
       setIsVerifying(false);
     }
@@ -391,6 +410,7 @@ const Register = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
     setErrors({});
     setApiError(null);
+    setVerificationMessage(null);
   };
 
   return (
@@ -444,6 +464,13 @@ const Register = () => {
               {apiError && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-600 text-sm">{apiError}</p>
+                </div>
+              )}
+
+              {/* Verification Message Display */}
+              {verificationMessage && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-700 text-sm">{verificationMessage}</p>
                 </div>
               )}
 
