@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Download, Eye, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Search, Filter, Download, Eye, CheckCircle, XCircle, RefreshCw, Plus } from 'lucide-react';
 import StatusBadge from '../../components/common/StatusBadge';
 import ApproveModal from '../../components/adminComponents/transactions/ApproveModal';
 import RejectModal from '../../components/adminComponents/transactions/RejectModal';
+import NewTransactionModal, { type NewTransactionData } from '../../components/adminComponents/transactions/newTransanction';
 
 import { adminService } from '../../services/admin';
 import TransactionDetailsModal from '../../components/adminComponents/transactions/TransactionsDetails';
+import { registrationService } from '../../services/registrationService';
 
 interface Transaction {
   id: string;
@@ -49,7 +51,9 @@ const Transactions = () => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showNewTransactionModal, setShowNewTransactionModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -101,7 +105,7 @@ const Transactions = () => {
     try {
       setActionLoading(true);
       await adminService.approveTransaction(id, adminNotes);
-      await fetchTransactions(); // Refresh the list
+      await fetchTransactions();
       setShowApproveModal(false);
       setSelectedTransaction(null);
     } catch (err) {
@@ -116,7 +120,7 @@ const Transactions = () => {
     try {
       setActionLoading(true);
       await adminService.rejectTransaction(id, adminNotes);
-      await fetchTransactions(); // Refresh the list
+      await fetchTransactions();
       setShowRejectModal(false);
       setSelectedTransaction(null);
     } catch (err) {
@@ -124,6 +128,21 @@ const Transactions = () => {
       alert('Failed to reject transaction. Please try again.');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleCreateTransaction = async (data: NewTransactionData) => {
+    try {
+      setCreateLoading(true);
+      const response = await registrationService.completeRegistration(data);
+      await fetchTransactions(); // Refresh the list
+      alert(`Investment created successfully! Reference: ${response.data.investment.reference}`);
+    } catch (err: any) {
+      console.error('Failed to create transaction:', err);
+      alert(err.message || 'Failed to create investment. Please try again.');
+      throw err;
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -175,6 +194,13 @@ const Transactions = () => {
           >
             <RefreshCw size={18} />
             <span className="text-sm font-medium">Refresh</span>
+          </button>
+          <button 
+            onClick={() => setShowNewTransactionModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#ff444f] text-white rounded-lg hover:bg-[#d43b44] transition-colors"
+          >
+            <Plus size={18} />
+            <span className="text-sm font-medium">New Transaction</span>
           </button>
           <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
             <Download size={18} />
@@ -394,6 +420,14 @@ const Transactions = () => {
           setShowDetailsModal(false);
           setSelectedTransaction(null);
         }}
+      />
+
+      {/* New Transaction Modal */}
+      <NewTransactionModal
+        isOpen={showNewTransactionModal}
+        onClose={() => setShowNewTransactionModal(false)}
+        onCreate={handleCreateTransaction}
+        isLoading={createLoading}
       />
     </motion.div>
   );

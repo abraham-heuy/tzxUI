@@ -99,5 +99,16 @@ export const registrationService = {
       console.error('Status check failed:', error);
       throw new Error(getErrorMessage(error));
     }
+  }, 
+
+  // Check if user exists and has investments
+checkUserExists: async (data: { email?: string; phone?: string; idNumber?: string }) => {
+  try {
+    const response = await api.post('/check-user', data);
+    return response.data;
+  } catch (error: any) {
+    console.error('User check failed:', error);
+    throw new Error(getErrorMessage(error));
   }
+},
 };

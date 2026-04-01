@@ -172,8 +172,10 @@ const Register = () => {
   };
 
   // Validation
-  const validateStep1 = () => {
+  const validateStep1 = async (): Promise<boolean> => {
     const newErrors: Record<string, string> = {};
+    
+    // Basic validation
     if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
     if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email))
       newErrors.email = "Valid email is required";
@@ -190,9 +192,58 @@ const Register = () => {
       newErrors.password = "Password must be at least 8 characters";
     if (formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  
+    // If there are validation errors, show them and return false
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return false;
+    }
+  
+    // Check if user already exists in backend
+    setIsVerifying(true);
+    setApiError(null);
+  
+    try {
+      const response = await registrationService.checkUserExists({
+        email: formData.email,
+        phone: formData.phone,
+        idNumber: formData.idNumber
+      });
+  
+      if (response.exists && response.hasInvestment) {
+        // User has existing investment
+        if (response.status === 'pending') {
+          setApiError('You have a pending investment awaiting admin approval. Please wait for approval before registering again.');
+          return false;
+        } 
+        if (response.status === 'approved') {
+          setApiError('Your account is already approved! Please log in to your dashboard.');
+          setTimeout(() => {
+            navigate('/login');
+          }, 3000);
+          return false;
+        }
+        if (response.status === 'rejected') {
+          setApiError('Your previous investment was rejected. Please contact support for assistance.');
+          return false;
+        }
+      }
+      
+      // User exists but no investment OR new user - allow registration
+      if (response.exists && !response.hasInvestment) {
+        console.log('User exists but no investment, proceeding...');
+        return true;
+      }
+      
+      // New user - proceed
+      return true;
+      
+    } catch (error: any) {
+      setApiError(error.message || 'Failed to check user status. Please try again.');
+      return false;
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const validateStep2 = () => {
@@ -367,10 +418,11 @@ const Register = () => {
   };
 
   const handleNext = async () => {
-    let isValid = false;
+    let isValid: boolean = false;
+    
     switch (currentStep) {
       case 1:
-        isValid = validateStep1();
+        isValid = await validateStep1(); // This returns boolean, not Promise<boolean> after await
         break;
       case 2:
         isValid = validateStep2();
@@ -381,7 +433,7 @@ const Register = () => {
       default:
         isValid = true;
     }
-
+  
     if (isValid) {
       if (currentStep === 5) {
         await handleFinalSubmit();
