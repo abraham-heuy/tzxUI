@@ -2,22 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, Clock } from 'lucide-react';
 
 // Fixed global maintenance period
-// Start: Today at 11:15 PM
-// End: Next day at 12:40 AM (1 hour 25 minutes later)
+// Start: Today at 12:25 AM
+// End: Today at 2:25 AM (2 hours later)
 const getMaintenancePeriod = () => {
   const now = new Date();
   
-  // Set start time to today at 23:15 (11:15 PM)
+  // Set start time to today at 00:25 (12:25 AM)
   const startTime = new Date(now);
-  startTime.setHours(23, 15, 0, 0);
+  startTime.setHours(0, 25, 0, 0);
   
-  // Set end time to today at 23:59? No, it's next day
-  // End time is tomorrow at 00:40 (12:40 AM)
+  // Set end time to today at 02:25 (2:25 AM)
   const endTime = new Date(now);
-  endTime.setHours(0, 40, 0, 0);
+  endTime.setHours(2, 25, 0, 0);
   
-  // If end time is before start time, it means it's the next day
-  // So add one day to end time
+  // If end time is before start time (shouldn't happen with 2-hour window)
   if (endTime <= startTime) {
     endTime.setDate(endTime.getDate() + 1);
   }
@@ -71,7 +69,7 @@ const MaintenanceBanner = () => {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 text-sm sm:text-base">
           <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-          <span>⚠️ Site under brief maintenance (11:15 PM - 12:40 AM). Please do not complete any transactions.</span>
+          <span>⚠️ Site under brief maintenance (12:25 AM - 2:25 AM). Please do not complete any transactions.</span>
           <div className="flex items-center gap-1 bg-red-700 px-2 py-1 rounded-md">
             <Clock className="w-4 h-4" />
             <span className="font-mono font-bold">Loading...</span>
@@ -95,7 +93,7 @@ const MaintenanceBanner = () => {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 text-sm sm:text-base">
         <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-        <span>⚠️ Site under brief maintenance (11:15 PM - 12:40 AM). Please do not complete any transactions until maintenance ends.</span>
+        <span>⚠️ Site under brief maintenance (12:25 AM - 2:25 AM). Please do not complete any transactions until maintenance ends.</span>
         <div className="flex items-center gap-1 bg-red-700 px-2 py-1 rounded-md">
           <Clock className="w-4 h-4" />
           <span className="font-mono font-bold">{formattedTime}</span>
