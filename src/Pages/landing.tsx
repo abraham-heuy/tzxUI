@@ -10,18 +10,17 @@ import Footer from '../components/layout/Footer';
 // Import background image
 import backgroundImage from '../assets/background.jpg';
 import Disclaimer from '../components/sections/disclaimer';
+import MaintenanceBanner from '../components/common/maintenanceBanner';
 
 const LandingPage = () => {
   useScroll();
   
-  // Refs for scroll animations
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const poolsRef = useRef<HTMLDivElement>(null);
-  const disclaimerRef = useRef<HTMLDivElement>(null); // Add ref
+  const disclaimerRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
 
-  // Navigation items
   const navItems = [
     { name: 'Home', href: '#' },
     { name: 'Pools', href: '#pools' },
@@ -34,11 +33,15 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white font-['Inter,_sans-serif']">
       <Navbar navItems={navItems} />
-      <Hero ref={heroRef} backgroundImage={backgroundImage} />
-      <Features ref={featuresRef} />
-      <Pools ref={poolsRef} />
-      <Disclaimer ref={disclaimerRef} />
-      <CTA ref={ctaRef} />
+      {/* Add padding top equal to navbar height to push content down */}
+      <div className="pt-16">
+        <MaintenanceBanner />
+        <Hero ref={heroRef} backgroundImage={backgroundImage} />
+        <Features ref={featuresRef} />
+        <Pools ref={poolsRef} />
+        <Disclaimer ref={disclaimerRef} />
+        <CTA ref={ctaRef} />
+      </div>
       <Footer />
     </div>
   );
