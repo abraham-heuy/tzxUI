@@ -27,10 +27,10 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
     { name: 'Transactions', icon: CreditCard, path: '/admin/transactions' },
-    {name: 'Slot Manager', icon: BriefcaseBusiness, path:'/admin/slot-manager'},
+    { name: 'Slot Manager', icon: BriefcaseBusiness, path: '/admin/slot-manager' },
     { name: 'Support Tickets', icon: Ticket, path: '/admin/tickets' },
     { name: 'Contacts', icon: Mail, path: '/admin/contact' }, 
-     { name: 'Deriv Tokens', icon: Eye, path: '/admin/deriv-tokens' },
+    { name: 'Deriv Tokens', icon: Eye, path: '/admin/deriv-tokens' },
     { name: 'Users', icon: Users, path: '/admin/users' },
     { name: 'Settings', icon: Settings, path: '/admin/settings' },
   ];
@@ -45,8 +45,6 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
     navigate('/login');
   };
 
-  // Get user initials
-
   return (
     <>
       {/* Mobile Overlay */}
@@ -60,13 +58,13 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-full w-64 bg-white shadow-xl transition-transform duration-300
+          fixed top-0 left-0 z-50 h-full w-64 bg-white shadow-xl transition-transform duration-300 flex flex-col
           ${isLargeScreen ? 'translate-x-0' : sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
         `}
       >
-        {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
+        {/* Logo - Fixed at top */}
+        <div className="flex-shrink-0 h-16 flex items-center justify-between px-4 border-b border-gray-200">
           <div 
             className="flex items-center gap-2 cursor-pointer"
             onClick={() => navigate('/admin/dashboard')}
@@ -84,8 +82,8 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
           </button>
         </div>
 
-        {/* Menu Items */}
-        <nav className="p-4 space-y-1">
+        {/* Scrollable Menu Area */}
+        <div className="flex-1 overflow-y-auto py-4 px-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -109,22 +107,10 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
               </button>
             );
           })}
+        </div>
 
-          {/* Divider */}
-          <div className="my-4 border-t border-gray-200" />
-
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition-all"
-          >
-            <LogOut size={20} />
-            <span className="flex-1 text-left font-medium">Logout</span>
-          </button>
-        </nav>
-
-        {/* Footer - Real User Data */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        {/* Footer - Fixed at bottom with its own scroll if needed */}
+        <div className="flex-shrink-0 border-t border-gray-200 p-4 bg-white">
           <div className="bg-gray-50 rounded-xl p-3">
             <p className="text-xs text-gray-500">Logged in as</p>
             <p className="text-sm font-medium text-gray-900 truncate">
@@ -135,9 +121,18 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: AdminSidebarProps) => {
             </p>
             <div className="mt-2 flex items-center gap-1">
               <span className="text-xs px-2 py-0.5 bg-[#ff444f]/10 text-[#ff444f] rounded-full capitalize">
-                {user?.role.name || 'user'}
+                {user?.role?.name || 'user'}
               </span>
             </div>
+            
+            {/* Logout Button inside footer */}
+            <button
+              onClick={handleLogout}
+              className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-all text-sm font-medium"
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </aside>

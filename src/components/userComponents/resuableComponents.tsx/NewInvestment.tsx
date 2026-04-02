@@ -315,7 +315,7 @@ const NewInvestment = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16">
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/user/dashboard")}
               className="flex items-center gap-2 text-gray-700 hover:text-[#ff444f] transition-colors"
             >
               <ArrowLeft size={20} />

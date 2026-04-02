@@ -1,102 +1,90 @@
 import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { CheckCircle, MessageCircle, X } from 'lucide-react';
 
-// Fixed global maintenance period
-// Start: Today at 12:25 AM
-// End: Today at 2:25 AM (2 hours later)
+// Fixed priority fix period
+// Start: 3:05 AM
+// End: 4:00 PM (same day)
 const getMaintenancePeriod = () => {
   const now = new Date();
   
-  // Set start time to today at 00:25 (12:25 AM)
+  // Set start time to today at 03:05 (3:05 AM)
   const startTime = new Date(now);
-  startTime.setHours(0, 25, 0, 0);
+  startTime.setHours(3, 5, 0, 0);
   
-  // Set end time to today at 02:25 (2:25 AM)
+  // Set end time to today at 16:00 (4:00 PM)
   const endTime = new Date(now);
-  endTime.setHours(2, 25, 0, 0);
-  
-  // If end time is before start time (shouldn't happen with 2-hour window)
-  if (endTime <= startTime) {
-    endTime.setDate(endTime.getDate() + 1);
-  }
+  endTime.setHours(16, 0, 0, 0);
   
   // If current time is after end time, maintenance is over
   if (now > endTime) {
-    return { isActive: false, endTime: null };
+    return { isActive: false };
   }
   
   // If current time is before start time, maintenance hasn't started yet
   if (now < startTime) {
-    return { isActive: false, endTime: null };
+    return { isActive: false };
   }
   
-  return { isActive: true, endTime: endTime.getTime() };
+  return { isActive: true };
 };
 
 const MaintenanceBanner = () => {
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const bannerRef = useRef<HTMLDivElement>(null);
+  const [hasDismissed, setHasDismissed] = useState(false);
 
   useEffect(() => {
-    const { isActive, endTime } = getMaintenancePeriod();
+    const { isActive } = getMaintenancePeriod();
+    
+    // Check if user has dismissed this banner session
+    const dismissed = sessionStorage.getItem('maintenance_banner_dismissed');
+    if (dismissed === 'true') {
+      setHasDismissed(true);
+    }
     
     if (!isActive) {
       setIsVisible(false);
-      return;
     }
-
-    const interval = setInterval(() => {
-      const remaining = endTime! - Date.now();
-      if (remaining <= 0) {
-        clearInterval(interval);
-        setIsVisible(false);
-      } else {
-        setTimeLeft(remaining);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
   }, []);
 
-  if (!isVisible) return null;
+  const handleDismiss = () => {
+    setIsVisible(false);
+    sessionStorage.setItem('maintenance_banner_dismissed', 'true');
+  };
 
-  if (timeLeft === null) {
-    return (
-      <div 
-        ref={bannerRef} 
-        className="bg-red-600 text-white py-2 px-4 text-center sticky top-0 z-50 shadow-md"
-      >
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 text-sm sm:text-base">
-          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-          <span>⚠️ Site under brief maintenance (12:25 AM - 2:25 AM). Please do not complete any transactions.</span>
-          <div className="flex items-center gap-1 bg-red-700 px-2 py-1 rounded-md">
-            <Clock className="w-4 h-4" />
-            <span className="font-mono font-bold">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const hours = Math.floor(timeLeft / 3600000);
-  const minutes = Math.floor((timeLeft % 3600000) / 60000);
-  const seconds = Math.floor((timeLeft % 60000) / 1000);
-  const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes
-    .toString()
-    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  if (!isVisible || hasDismissed) return null;
 
   return (
     <div 
       ref={bannerRef} 
-      className="bg-red-600 text-white py-2 px-4 text-center sticky top-0 z-50 shadow-md"
+      className="bg-blue-50 border-b border-blue-200 text-blue-800 py-3 px-4 text-center sticky top-0 z-50"
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 text-sm sm:text-base">
-        <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-        <span>⚠️ Site under brief maintenance (12:25 AM - 2:25 AM). Please do not complete any transactions until maintenance ends.</span>
-        <div className="flex items-center gap-1 bg-red-700 px-2 py-1 rounded-md">
-          <Clock className="w-4 h-4" />
-          <span className="font-mono font-bold">{formattedTime}</span>
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+        <div className="flex items-start gap-3 flex-1">
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="text-left">
+            <p className="font-semibold text-blue-900">Priority Features Patched</p>
+            <p className="text-sm text-blue-700">
+              We apologize for the disruptions. You can now transact normally and view your account.
+              If you have more queries/encounter some problems, feel free to consult with us.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <a 
+            href="/contact" 
+            className="flex items-center gap-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1.5 rounded-full transition-colors"
+          >
+            <MessageCircle size={14} />
+            Contact Support
+          </a>
+          <button
+            onClick={handleDismiss}
+            className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1.5 rounded-full transition-colors"
+            title="Dismiss"
+          >
+            <X size={16} />
+          </button>
         </div>
       </div>
     </div>

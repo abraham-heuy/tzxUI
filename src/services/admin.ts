@@ -1,25 +1,50 @@
 import api from './api';
 
+// New Dashboard Stats Interface matching your backend
 export interface DashboardStats {
-  investments: {
-    total: number;
-    monthly: number;
-    count: {
-      pending: number;
-      approved: number;
-      rejected: number;
-      total: number;
+  quickStats: {
+    totalUsers: number;
+    approvedUsers: number;
+    pendingUsers: number;
+    approvalRate: number;
+    totalInvestments: number;
+    totalInvestedAmount: number;
+    averageInvestment: number;
+    totalTickets: number;
+    openTickets: number;
+    resolvedTickets: number;
+    closedTickets: number;
+    activeUsers: number;
+    engagementRate: number;
+  };
+  roleDistribution: {
+    investors: number;
+    admins: number;
+    other: number;
+  };
+  investmentStatus: Array<{ status: string; count: number; totalAmount: number }>;
+  ticketStatus: Array<{ status: string; count: number }>;
+  charts: {
+    dailyNewUsers: Array<{ date: string; label: string; count: number }>;
+    dailyInvestments: Array<{ date: string; label: string; count: number; amount: number }>;
+    monthlyNewUsers: Array<{ month: string; label: string; count: number }>;
+    monthlyInvestments: Array<{ month: string; label: string; count: number; amount: number }>;
+  };
+  topInvestors: Array<{
+    userId: string;
+    totalInvested: number;
+    investmentCount: number;
+    user: {
+      id: string;
+      fullName: string;
+      email: string;
+      isApproved: boolean;
     };
-  };
-  users: {
-    total: number;
-    newThisMonth: number;
-  };
-  tickets: {
-    open: number;
-    inProgress: number;
-    resolved: number;
-    total: number;
+  }>;
+  periodSummary: {
+    thisWeek: { newUsers: number; newInvestments: number; investedAmount: number };
+    thisMonth: { newUsers: number; newInvestments: number; investedAmount: number };
+    thisYear: { newUsers: number; newInvestments: number; investedAmount: number };
   };
 }
 
@@ -80,9 +105,6 @@ export const adminService = {
     return response.data;
   },
 
-  /**
-   * Get recent activity
-   */
   getRecentActivity: async (): Promise<{ success: boolean; data: ActivityItem[] }> => {
     const response = await api.get('/other/dashboard/activity');
     return response.data;

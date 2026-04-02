@@ -160,13 +160,13 @@ const UserDashboard = () => {
     {
       icon: MessageCircle,
       label: 'New Ticket',
-      onClick: () => navigate('/dashboard/tickets?new=true'),
+      onClick: () => navigate('/user/tickets?new=true'),
       color: 'bg-blue-100 text-blue-700 hover:bg-blue-200'
     },
     {
       icon: FileText,
       label: 'View Transactions',
-      onClick: () => navigate('/dashboard/transactions'),
+      onClick: () => navigate('/user/transactions'),
       color: 'bg-purple-100 text-purple-700 hover:bg-purple-200'
     },
     {
@@ -276,7 +276,7 @@ const UserDashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
             <button 
-              onClick={() => navigate('/dashboard/transactions')}
+              onClick={() => navigate('/user/transactions')}
               className="text-sm text-[#ff444f] hover:underline flex items-center gap-1"
             >
               View All <ArrowRight size={14} />
@@ -286,7 +286,7 @@ const UserDashboard = () => {
             <div className="space-y-3">
               {stats.recentTransactions.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                     onClick={() => navigate(`/dashboard/transactions?id=${tx.id}`)}>
+                     onClick={() => navigate(`/user/transactions?id=${tx.id}`)}>
                   <div>
                     <p className="text-sm font-medium text-gray-900">{tx.investmentReference}</p>
                     <p className="text-xs text-gray-500">{tx.poolName || 'Investment'} • {formatDate(tx.createdAt)}</p>
@@ -310,7 +310,7 @@ const UserDashboard = () => {
               <ActionChip
                 icon={PlusCircle}
                 label="Start Investing"
-                onClick={() => navigate('/investments/new')}
+                onClick={() => navigate('/user/transactions')}
                 color="bg-[#ff444f] text-white hover:bg-[#d43b44]"
               />
             </div>
@@ -322,7 +322,7 @@ const UserDashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Recent Support Tickets</h2>
             <button 
-              onClick={() => navigate('/dashboard/tickets')}
+              onClick={() => navigate('/user/tickets')}
               className="text-sm text-[#ff444f] hover:underline flex items-center gap-1"
             >
               View All <ArrowRight size={14} />
@@ -332,7 +332,7 @@ const UserDashboard = () => {
             <div className="space-y-3">
               {stats.recentTickets.map((ticket) => (
                 <div key={ticket.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                     onClick={() => navigate(`/dashboard/tickets?id=${ticket.id}`)}>
+                     onClick={() => navigate(`/user/tickets?id=${ticket.id}`)}>
                   <div>
                     <p className="text-sm font-medium text-gray-900">{ticket.ticketNumber}</p>
                     <p className="text-xs text-gray-500 line-clamp-1">{ticket.subject}</p>
@@ -354,7 +354,7 @@ const UserDashboard = () => {
               <ActionChip
                 icon={MessageCircle}
                 label="Create Ticket"
-                onClick={() => navigate('/dashboard/tickets?new=true')}
+                onClick={() => navigate('/user/tickets')}
                 color="bg-blue-100 text-blue-700 hover:bg-blue-200"
               />
             </div>
